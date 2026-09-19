@@ -8,6 +8,7 @@ export async function createProduct(input: {
   name: string;
   unit_price_before_vat: number;
   unit_of_measure: string;
+  machine_code: number | null;
 }) {
   const session = await getCurrentProfile();
   if (!session || session.profile.role !== "admin") {
@@ -20,15 +21,19 @@ export async function createProduct(input: {
     name: input.name,
     unit_price_before_vat: input.unit_price_before_vat,
     unit_of_measure: input.unit_of_measure,
+    machine_code: input.machine_code,
   });
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (error.code === "23505") throw new Error("That Machine Code is already used by another product.");
+    throw new Error(error.message);
+  }
 
   revalidatePath("/admin/products");
 }
 
 export async function updateProduct(
   productId: string,
-  input: { name: string; unit_price_before_vat: number; unit_of_measure: string }
+  input: { name: string; unit_price_before_vat: number; unit_of_measure: string; machine_code: number | null }
 ) {
   const session = await getCurrentProfile();
   if (!session || session.profile.role !== "admin") {
@@ -42,10 +47,14 @@ export async function updateProduct(
       name: input.name,
       unit_price_before_vat: input.unit_price_before_vat,
       unit_of_measure: input.unit_of_measure,
+      machine_code: input.machine_code,
     })
     .eq("id", productId)
     .eq("shop_id", session.shop.id);
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (error.code === "23505") throw new Error("That Machine Code is already used by another product.");
+    throw new Error(error.message);
+  }
 
   revalidatePath("/admin/products");
 }

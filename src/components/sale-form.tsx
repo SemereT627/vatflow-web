@@ -45,11 +45,20 @@ const schema = z.object({
   saleDate: z.string().min(1),
   buyerName: z.string().trim().optional(),
   buyerTin: z.string().trim().optional(),
+  mrcNumber: z.string().trim().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
 
-export function SaleForm({ products, vatRate }: { products: SaleableProduct[]; vatRate: number }) {
+export function SaleForm({
+  products,
+  vatRate,
+  mode = "record",
+}: {
+  products: SaleableProduct[];
+  vatRate: number;
+  mode?: "record" | "import";
+}) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -57,12 +66,14 @@ export function SaleForm({ products, vatRate }: { products: SaleableProduct[]; v
   const [lines, setLines] = useState<Line[]>([]);
   const [selectedProductId, setSelectedProductId] = useState("");
   const [quantity, setQuantity] = useState("1");
+  const [description, setDescription] = useState("");
+  const [unitPrice, setUnitPrice] = useState("");
   const [lineError, setLineError] = useState<string | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { receiptNumber: "", saleDate: todayIso(), buyerName: "", buyerTin: "" },
+    defaultValues: { receiptNumber: "", saleDate: todayIso(), buyerName: "", buyerTin: "", mrcNumber: "" },
   });
 
   const totals = useMemo(() => {
@@ -80,20 +91,32 @@ export function SaleForm({ products, vatRate }: { products: SaleableProduct[]; v
   }, [lines, vatRate]);
 
   function resetAll() {
-    form.reset({ receiptNumber: "", saleDate: todayIso(), buyerName: "", buyerTin: "" });
+    form.reset({ receiptNumber: "", saleDate: todayIso(), buyerName: "", buyerTin: "", mrcNumber: "" });
     setLines([]);
     setSelectedProductId("");
     setQuantity("1");
+    setDescription("");
+    setUnitPrice("");
     setLineError(null);
     setServerError(null);
     setShowBuyer(false);
   }
 
+  function selectProduct(productId: string) {
+    setSelectedProductId(productId);
+    const product = products.find((p) => p.id === productId);
+    if (product) {
+      setDescription(product.name);
+      setUnitPrice(String(product.unit_price_before_vat));
+    }
+  }
+
   function addLine() {
     const product = products.find((p) => p.id === selectedProductId);
     const qty = parseFloat(quantity);
-    if (!product || !qty || qty <= 0) {
-      setLineError("Pick an item and a valid quantity.");
+    const price = parseFloat(unitPrice);
+    if (!product || !qty || qty <= 0 || !description.trim() || isNaN(price) || price < 0) {
+      setLineError("Pick an item, and enter a valid name, price, and quantity.");
       return;
     }
     setLineError(null);
@@ -102,15 +125,17 @@ export function SaleForm({ products, vatRate }: { products: SaleableProduct[]; v
       {
         key: crypto.randomUUID(),
         product_id: product.id,
-        description: product.name,
+        description: description.trim(),
         unit_of_measure: product.unit_of_measure,
         unit_label: product.unit_short_code,
         quantity: qty,
-        unit_price: product.unit_price_before_vat,
+        unit_price: price,
       },
     ]);
     setSelectedProductId("");
     setQuantity("1");
+    setDescription("");
+    setUnitPrice("");
   }
 
   function removeLine(key: string) {
@@ -130,7 +155,7 @@ export function SaleForm({ products, vatRate }: { products: SaleableProduct[]; v
         buyer_tin: values.buyerTin || null,
         buyer_name: values.buyerName || null,
         sale_date: values.saleDate,
-        mrc_number: null,
+        mrc_number: values.mrcNumber || null,
         vat_receipt_number: values.receiptNumber,
         items: lines.map(({ key: _key, unit_label: _unitLabel, ...rest }) => rest),
       });
@@ -152,15 +177,19 @@ export function SaleForm({ products, vatRate }: { products: SaleableProduct[]; v
       }}
     >
       <DialogTrigger asChild>
-        <Button>
+        <Button variant={mode === "import" ? "outline" : "default"}>
           <Plus />
-          New sale
+          {mode === "import" ? "Import sale" : "New sale"}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Record a sale</DialogTitle>
-          <DialogDescription>Enter the VAT receipt exactly as issued to the buyer.</DialogDescription>
+          <DialogTitle>{mode === "import" ? "Import a past sale" : "Record a sale"}</DialogTitle>
+          <DialogDescription>
+            {mode === "import"
+              ? "Backfill a sale already made this month, from the machine's own report. Match each item to a catalog product, then enter its name and price exactly as recorded."
+              : "Enter the VAT receipt exactly as issued to the buyer."}
+          </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
@@ -200,7 +229,7 @@ export function SaleForm({ products, vatRate }: { products: SaleableProduct[]; v
               <div className="flex flex-wrap items-end gap-2">
                 <div className="min-w-40 flex-1">
                   <label className="mb-1.5 block text-xs font-semibold text-ink-soft">Item</label>
-                  <Select value={selectedProductId} onValueChange={setSelectedProductId}>
+                  <Select value={selectedProductId} onValueChange={selectProduct}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select item…" />
                     </SelectTrigger>
@@ -217,10 +246,25 @@ export function SaleForm({ products, vatRate }: { products: SaleableProduct[]; v
                   <label className="mb-1.5 block text-xs font-semibold text-ink-soft">Quantity</label>
                   <Input type="number" step="any" min="0" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
                 </div>
-                <Button type="button" variant="outline" onClick={addLine}>
-                  Add
-                </Button>
               </div>
+
+              {selectedProductId && (
+                <div className="mt-2 flex flex-wrap items-end gap-2 rounded-lg bg-surface-2 p-2.5">
+                  <div className="min-w-40 flex-1">
+                    <label className="mb-1.5 block text-xs font-semibold text-ink-soft">
+                      Name on receipt
+                    </label>
+                    <Input value={description} onChange={(e) => setDescription(e.target.value)} />
+                  </div>
+                  <div className="w-28">
+                    <label className="mb-1.5 block text-xs font-semibold text-ink-soft">Price</label>
+                    <Input type="number" step="any" min="0" value={unitPrice} onChange={(e) => setUnitPrice(e.target.value)} />
+                  </div>
+                  <Button type="button" variant="outline" onClick={addLine}>
+                    Add
+                  </Button>
+                </div>
+              )}
               {lineError && <p className="mt-2 text-xs font-medium text-critical">{lineError}</p>}
 
               {lines.length > 0 && (
@@ -265,7 +309,7 @@ export function SaleForm({ products, vatRate }: { products: SaleableProduct[]; v
                 {showBuyer ? "Hide buyer details" : "Add buyer details (optional)"}
               </button>
               {showBuyer && (
-                <div className="mt-3 grid grid-cols-2 gap-3">
+                <div className="mt-3 grid grid-cols-3 gap-3">
                   <FormField
                     control={form.control}
                     name="buyerName"
@@ -285,6 +329,19 @@ export function SaleForm({ products, vatRate }: { products: SaleableProduct[]; v
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Buyer TIN</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="mrcNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>MRC number</FormLabel>
                         <FormControl>
                           <Input {...field} />
                         </FormControl>

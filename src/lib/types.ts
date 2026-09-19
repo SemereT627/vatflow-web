@@ -29,6 +29,7 @@ export type Product = {
   unit_price_before_vat: number;
   unit_of_measure: string;
   is_active: boolean;
+  machine_code: number | null;
 };
 
 export type Sale = {

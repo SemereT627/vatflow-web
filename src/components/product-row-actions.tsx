@@ -38,6 +38,7 @@ type ProductForActions = {
   unit_price_before_vat: number;
   unit_of_measure: string;
   is_active: boolean;
+  machine_code: number | null;
 };
 
 export function ProductStatusToggle({ product }: { product: ProductForActions }) {
@@ -160,6 +161,10 @@ const schema = z.object({
     .min(1, "Enter a price.")
     .refine((v) => !isNaN(parseFloat(v)) && parseFloat(v) > 0, "Enter a price greater than zero."),
   unit: z.string().min(1),
+  machineCode: z
+    .string()
+    .trim()
+    .refine((v) => v === "" || (!isNaN(parseInt(v, 10)) && parseInt(v, 10) > 0), "Enter a whole number greater than zero."),
 });
 type FormValues = z.infer<typeof schema>;
 
@@ -182,6 +187,7 @@ function EditProductDialog({
     name: product.name,
     price: String(product.unit_price_before_vat),
     unit: product.unit_of_measure,
+    machineCode: product.machine_code === null ? "" : String(product.machine_code),
   };
   const form = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues });
 
@@ -192,6 +198,7 @@ function EditProductDialog({
         name: values.name,
         unit_price_before_vat: parseFloat(values.price),
         unit_of_measure: values.unit,
+        machine_code: values.machineCode === "" ? null : parseInt(values.machineCode, 10),
       });
       onOpenChange(false);
       queryClient.invalidateQueries({ queryKey: PRODUCTS_QUERY_PREFIX });
@@ -219,19 +226,34 @@ function EditProductDialog({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Name</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-[1fr_auto] gap-3">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="machineCode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Machine Code</FormLabel>
+                    <FormControl>
+                      <Input type="number" step="1" min="1" className="w-28" placeholder="e.g. 42" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <div className="grid grid-cols-2 gap-3">
               <FormField

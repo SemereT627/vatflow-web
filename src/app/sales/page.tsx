@@ -58,7 +58,12 @@ export default async function SalesPage({
             {total} sale{total === 1 ? "" : "s"}
           </p>
         </div>
-        <SaleForm products={saleableProducts} vatRate={session.shop.vat_rate} />
+        <div className="flex gap-2">
+          {session.profile.role === "admin" && (
+            <SaleForm products={saleableProducts} vatRate={session.shop.vat_rate} mode="import" />
+          )}
+          <SaleForm products={saleableProducts} vatRate={session.shop.vat_rate} />
+        </div>
       </div>
 
       <SalesTable

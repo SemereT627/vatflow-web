@@ -8,6 +8,7 @@ export type ProductRow = {
   unit_price_before_vat: number;
   unit_of_measure: string;
   is_active: boolean;
+  machine_code: number | null;
   units: { short_code: string } | null;
 };
 
@@ -29,8 +30,9 @@ export async function fetchProductsPage(shopId: string, page: number): Promise<{
 
   const { data, error } = await supabase
     .from("products")
-    .select("id, name, unit_price_before_vat, unit_of_measure, is_active, units(short_code)")
+    .select("id, name, unit_price_before_vat, unit_of_measure, is_active, machine_code, units(short_code)")
     .eq("shop_id", shopId)
+    .order("machine_code", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: true })
     .range(from, to);
 

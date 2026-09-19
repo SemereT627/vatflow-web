@@ -53,7 +53,11 @@ create table products (
   unit_price_before_vat numeric not null check (unit_price_before_vat >= 0),
   unit_of_measure uuid not null references units(id),
   is_active boolean not null default true,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  -- Sequence number the shop's physical VAT-registration machine assigned this product.
+  -- Backfilled by the admin; not derived from created_at or any in-app ordering.
+  machine_code integer,
+  unique (shop_id, machine_code)
 );
 
 -- ============================================================

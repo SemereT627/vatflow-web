@@ -66,7 +66,7 @@ export function ProductsTable({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Machine No</TableHead>
+                <TableHead>Machine Code</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Unit</TableHead>
                 <TableHead className="text-right">Price (before VAT)</TableHead>
@@ -75,9 +75,9 @@ export function ProductsTable({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map((p, i) => (
+              {rows.map((p) => (
                 <TableRow key={p.id}>
-                  <TableCell className="num text-ink-soft">{from + i + 1}</TableCell>
+                  <TableCell className="num text-ink-soft">{p.machine_code ?? "—"}</TableCell>
                   <TableCell className="font-semibold">{p.name}</TableCell>
                   <TableCell className="text-ink-soft">{p.units?.short_code ?? "—"}</TableCell>
                   <TableCell className="num text-right">{p.unit_price_before_vat.toFixed(2)} ETB</TableCell>

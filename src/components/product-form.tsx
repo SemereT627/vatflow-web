@@ -31,6 +31,10 @@ const schema = z.object({
     .min(1, "Enter a price.")
     .refine((v) => !isNaN(parseFloat(v)) && parseFloat(v) > 0, "Enter a price greater than zero."),
   unit: z.string().min(1),
+  machineCode: z
+    .string()
+    .trim()
+    .refine((v) => v === "" || (!isNaN(parseInt(v, 10)) && parseInt(v, 10) > 0), "Enter a whole number greater than zero."),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -40,7 +44,7 @@ export function ProductForm({ units }: { units: Unit[] }) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
-  const defaultValues: FormValues = { name: "", price: "", unit: units[0]?.id ?? "" };
+  const defaultValues: FormValues = { name: "", price: "", unit: units[0]?.id ?? "", machineCode: "" };
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -54,6 +58,7 @@ export function ProductForm({ units }: { units: Unit[] }) {
         name: values.name,
         unit_price_before_vat: parseFloat(values.price),
         unit_of_measure: values.unit,
+        machine_code: values.machineCode === "" ? null : parseInt(values.machineCode, 10),
       });
       form.reset(defaultValues);
       setOpen(false);
@@ -86,19 +91,34 @@ export function ProductForm({ units }: { units: Unit[] }) {
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g. Teff — Nech" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-[1fr_auto] gap-3">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. Teff — Nech" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="machineCode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Machine Code</FormLabel>
+                    <FormControl>
+                      <Input type="number" step="1" min="1" className="w-28" placeholder="e.g. 42" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <div className="grid grid-cols-2 gap-3">
               <FormField
