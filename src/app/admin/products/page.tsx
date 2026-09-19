@@ -30,7 +30,7 @@ export default async function AdminProductsPage() {
       .from("units")
       .select("*")
       .or(`shop_id.eq.${session.shop.id},shop_id.is.null`)
-      .order("ministry_code"),
+      .order("export_code"),
   ]);
 
   const rows = (products ?? []) as unknown as ProductRow[];

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Sora, Manrope, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "@/components/sidebar";
+import { Topbar } from "@/components/topbar";
 
 const sora = Sora({
   variable: "--font-sora",
@@ -33,7 +34,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="flex h-full flex-col font-sans text-foreground md:flex-row">
         <Sidebar />
-        <div className="min-w-0 flex-1 overflow-y-auto">{children}</div>
+        <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">
+          <Topbar />
+          {children}
+        </div>
       </body>
     </html>
   );

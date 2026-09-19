@@ -28,16 +28,16 @@ create table profiles (
 
 -- ============================================================
 -- UNITS (admin-manageable units of measure)
--- Each unit maps to one of the Ministry's fixed numeric codes (2-10) for
--- export, even when the internal label (e.g. "M2") isn't in their own list —
--- unmapped units default to ministry_code 9 (OTHER).
+-- The XLSX template's Unit of Measure column just wants a plain ID 2-10
+-- (2=KG ... 10=PC, 9=OTHER as a catch-all). export_code carries that ID;
+-- units outside the template's own list export as 9 (OTHER).
 -- ============================================================
 create table units (
   id uuid primary key default gen_random_uuid(),
   shop_id uuid references shops(id) on delete cascade, -- null = global default, available to every shop
   label text not null,             -- e.g. "Meter square"
   short_code text not null,        -- e.g. "M2" — shown in pickers and tables
-  ministry_code smallint not null default 9 check (ministry_code between 2 and 10),
+  export_code smallint not null default 9 check (export_code between 2 and 10),
   is_active boolean not null default true,
   created_at timestamptz not null default now(),
   unique (shop_id, short_code)
@@ -166,11 +166,11 @@ create policy "admin manage export_templates" on export_templates
   with check (shop_id = auth_shop_id() and auth_role() = 'admin');
 
 -- ============================================================
--- Default units (global, shop_id null) — the Ministry's own 2-10 list.
--- Shops can add their own (e.g. "M2") via the Products page; anything
--- without a closer match exports under ministry_code 9 (OTHER).
+-- Default units (global, shop_id null) — the template's own 2-10 list.
+-- Shops can add their own (e.g. "M2") via the Products page; those always
+-- export under export_code 9 (OTHER).
 -- ============================================================
-insert into units (shop_id, label, short_code, ministry_code) values
+insert into units (shop_id, label, short_code, export_code) values
   (null, 'Kilogram', 'KG', 2),
   (null, 'Milliliter', 'ML', 3),
   (null, 'Gram', 'GM', 4),

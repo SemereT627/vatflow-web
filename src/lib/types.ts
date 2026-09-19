@@ -18,7 +18,7 @@ export type Unit = {
   shop_id: string | null;
   label: string;
   short_code: string;
-  ministry_code: number;
+  export_code: number;
   is_active: boolean;
 };
 

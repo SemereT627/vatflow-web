@@ -11,7 +11,7 @@ export const AVAILABLE_FIELDS: { field: string; label: string }[] = [
   { field: "mrc_number", label: "MRC number" },
   { field: "vat_receipt_number", label: "VAT receipt number" },
   { field: "description", label: "Description" },
-  { field: "unit_of_measure", label: "Unit of measure (Ministry code)" },
+  { field: "unit_of_measure", label: "Unit of measure (template ID 2-10)" },
   { field: "unit_label", label: "Unit label (e.g. M2)" },
   { field: "quantity", label: "Quantity" },
   { field: "unit_price", label: "Unit price" },

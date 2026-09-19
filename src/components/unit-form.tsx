@@ -5,13 +5,11 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Settings2 } from "lucide-react";
-import { createUnit, setUnitActive } from "@/app/actions/units";
-import { MINISTRY_UNIT_CODES } from "@/lib/vat";
+import { Pencil, Settings2, Trash2, X } from "lucide-react";
+import { createUnit, deleteUnit, setUnitActive, updateUnit } from "@/app/actions/units";
 import type { Unit } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
@@ -30,17 +28,16 @@ const schema = z.object({
     .trim()
     .min(1, "Enter a short code.")
     .max(8, "Keep it to 8 characters or fewer."),
-  ministry_code: z.string().min(1),
 });
 
 type FormValues = z.infer<typeof schema>;
-const DEFAULT_VALUES: FormValues = { label: "", short_code: "", ministry_code: "9" };
+const DEFAULT_VALUES: FormValues = { label: "", short_code: "" };
 
 export function UnitForm({ units }: { units: Unit[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
-  const [pendingId, setPendingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -50,27 +47,11 @@ export function UnitForm({ units }: { units: Unit[] }) {
   async function onSubmit(values: FormValues) {
     setServerError(null);
     try {
-      await createUnit({
-        label: values.label,
-        short_code: values.short_code,
-        ministry_code: parseInt(values.ministry_code, 10),
-      });
+      await createUnit(values);
       form.reset(DEFAULT_VALUES);
       router.refresh();
     } catch (err) {
       setServerError(err instanceof Error ? err.message : "Could not save unit.");
-    }
-  }
-
-  async function toggleActive(unit: Unit) {
-    setPendingId(unit.id);
-    try {
-      await setUnitActive(unit.id, !unit.is_active);
-      router.refresh();
-    } catch (err) {
-      setServerError(err instanceof Error ? err.message : "Could not update unit.");
-    } finally {
-      setPendingId(null);
     }
   }
 
@@ -82,59 +63,38 @@ export function UnitForm({ units }: { units: Unit[] }) {
           Manage units
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-xl">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Units of measure</DialogTitle>
           <DialogDescription>
-            Add units specific to what you sell (e.g. M2 for tiles). Each one maps to a Ministry code for
-            export — pick the closest match, or leave it as OTHER.
+            Add units specific to what you sell — e.g. M2 for tiles, Sack for grain.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="max-h-64 overflow-y-auto rounded-lg border border-line">
+        <div className="max-h-72 overflow-y-auto rounded-lg border border-line">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Unit</TableHead>
                 <TableHead>Code</TableHead>
-                <TableHead>Ministry maps to</TableHead>
                 <TableHead className="text-right">Status</TableHead>
+                <TableHead />
               </TableRow>
             </TableHeader>
             <TableBody>
-              {units.map((u) => (
-                <TableRow key={u.id}>
-                  <TableCell className="font-semibold">{u.label}</TableCell>
-                  <TableCell className="num text-ink-soft">{u.short_code}</TableCell>
-                  <TableCell className="text-ink-soft">
-                    {MINISTRY_UNIT_CODES.find((m) => m.code === u.ministry_code)?.label ?? u.ministry_code}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {u.shop_id ? (
-                      <button
-                        type="button"
-                        disabled={pendingId === u.id}
-                        onClick={() => toggleActive(u)}
-                        className={`rounded-full px-2 py-0.5 text-[11px] font-bold disabled:opacity-50 ${
-                          u.is_active ? "bg-good-bg text-good" : "bg-surface-2 text-ink-soft"
-                        }`}
-                      >
-                        {u.is_active ? "Active" : "Inactive"}
-                      </button>
-                    ) : (
-                      <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[11px] font-bold text-ink-soft">
-                        Default
-                      </span>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
+              {units.map((u) =>
+                editingId === u.id ? (
+                  <EditRow key={u.id} unit={u} onDone={() => setEditingId(null)} onError={setServerError} />
+                ) : (
+                  <ViewRow key={u.id} unit={u} onEdit={() => setEditingId(u.id)} onError={setServerError} />
+                )
+              )}
             </TableBody>
           </Table>
         </div>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-[1.4fr_1fr_1.2fr_auto] items-end gap-2">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-[1.6fr_1fr_auto] items-end gap-2">
             <FormField
               control={form.control}
               name="label"
@@ -161,30 +121,6 @@ export function UnitForm({ units }: { units: Unit[] }) {
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="ministry_code"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Ministry code</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {MINISTRY_UNIT_CODES.map((m) => (
-                        <SelectItem key={m.code} value={String(m.code)}>
-                          {m.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             <Button type="submit" disabled={form.formState.isSubmitting}>
               Add
             </Button>
@@ -193,5 +129,135 @@ export function UnitForm({ units }: { units: Unit[] }) {
         {serverError && <p className="text-sm text-critical">{serverError}</p>}
       </DialogContent>
     </Dialog>
+  );
+}
+
+function ViewRow({
+  unit,
+  onEdit,
+  onError,
+}: {
+  unit: Unit;
+  onEdit: () => void;
+  onError: (msg: string | null) => void;
+}) {
+  const router = useRouter();
+  const [pending, setPending] = useState(false);
+  const isCustom = !!unit.shop_id;
+
+  async function toggleActive() {
+    setPending(true);
+    onError(null);
+    try {
+      await setUnitActive(unit.id, !unit.is_active);
+      router.refresh();
+    } catch (err) {
+      onError(err instanceof Error ? err.message : "Could not update unit.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!confirm(`Delete "${unit.label}"? This can't be undone.`)) return;
+    setPending(true);
+    onError(null);
+    try {
+      await deleteUnit(unit.id);
+      router.refresh();
+    } catch (err) {
+      onError(err instanceof Error ? err.message : "Could not delete unit.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <TableRow>
+      <TableCell className="font-semibold">{unit.label}</TableCell>
+      <TableCell className="num text-ink-soft">{unit.short_code}</TableCell>
+      <TableCell className="text-right">
+        {isCustom ? (
+          <button
+            type="button"
+            disabled={pending}
+            onClick={toggleActive}
+            className={`rounded-full px-2 py-0.5 text-[11px] font-bold disabled:opacity-50 ${
+              unit.is_active ? "bg-good-bg text-good" : "bg-surface-2 text-ink-soft"
+            }`}
+          >
+            {unit.is_active ? "Active" : "Inactive"}
+          </button>
+        ) : (
+          <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[11px] font-bold text-ink-soft">Default</span>
+        )}
+      </TableCell>
+      <TableCell className="text-right">
+        {isCustom && (
+          <div className="flex justify-end gap-1">
+            <Button type="button" variant="ghost" size="icon" disabled={pending} onClick={onEdit}>
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
+            <Button type="button" variant="ghost" size="icon" disabled={pending} onClick={handleDelete}>
+              <Trash2 className="h-3.5 w-3.5 text-critical" />
+            </Button>
+          </div>
+        )}
+      </TableCell>
+    </TableRow>
+  );
+}
+
+function EditRow({
+  unit,
+  onDone,
+  onError,
+}: {
+  unit: Unit;
+  onDone: () => void;
+  onError: (msg: string | null) => void;
+}) {
+  const router = useRouter();
+  const [label, setLabel] = useState(unit.label);
+  const [shortCode, setShortCode] = useState(unit.short_code);
+  const [saving, setSaving] = useState(false);
+
+  async function handleSave() {
+    if (!label.trim() || !shortCode.trim()) {
+      onError("Enter a name and short code.");
+      return;
+    }
+    setSaving(true);
+    onError(null);
+    try {
+      await updateUnit(unit.id, { label: label.trim(), short_code: shortCode.trim() });
+      router.refresh();
+      onDone();
+    } catch (err) {
+      onError(err instanceof Error ? err.message : "Could not save unit.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <TableRow>
+      <TableCell>
+        <Input value={label} onChange={(e) => setLabel(e.target.value)} className="h-8" />
+      </TableCell>
+      <TableCell>
+        <Input value={shortCode} onChange={(e) => setShortCode(e.target.value)} className="h-8 w-20" />
+      </TableCell>
+      <TableCell colSpan={2} className="text-right">
+        <div className="flex justify-end gap-1">
+          <Button type="button" size="sm" disabled={saving} onClick={handleSave}>
+            {saving ? "Saving…" : "Save"}
+          </Button>
+          <Button type="button" variant="ghost" size="icon" disabled={saving} onClick={onDone}>
+            <X className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
   );
 }

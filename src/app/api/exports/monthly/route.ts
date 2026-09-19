@@ -18,7 +18,7 @@ function buildRow(sale: SaleWithItems, item: SaleWithItems["sale_items"][number]
     mrc_number: sale.mrc_number ?? "",
     vat_receipt_number: sale.vat_receipt_number,
     description: item.description,
-    unit_of_measure: item.units?.ministry_code ?? 9,
+    unit_of_measure: item.units?.export_code ?? 9,
     unit_label: item.units?.short_code ?? "",
     quantity: item.quantity,
     unit_price: item.unit_price,
@@ -43,7 +43,7 @@ type SaleWithItems = {
     total_value: number;
     vat: number;
     value_after_vat: number;
-    units: { ministry_code: number; short_code: string } | null;
+    units: { export_code: number; short_code: string } | null;
   }[];
 };
 
@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
   const { data: sales, error } = await supabase
     .from("sales")
     .select(
-      "vat_category, type_of_sale, buyer_tin, buyer_name, sale_date, mrc_number, vat_receipt_number, sale_items(description, quantity, unit_price, total_value, vat, value_after_vat, units(ministry_code, short_code))"
+      "vat_category, type_of_sale, buyer_tin, buyer_name, sale_date, mrc_number, vat_receipt_number, sale_items(description, quantity, unit_price, total_value, vat, value_after_vat, units(export_code, short_code))"
     )
     .eq("shop_id", session.shop.id)
     .gte("sale_date", start)
