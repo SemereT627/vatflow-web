@@ -1,0 +1,165 @@
+-- VatFlow schema
+-- Multi-tenant: every row scoped to a shop via shop_id, enforced by RLS.
+
+create extension if not exists "pgcrypto";
+
+-- ============================================================
+-- SHOPS (tenants)
+-- ============================================================
+create table shops (
+  id uuid primary key default gen_random_uuid(),
+  owner_name text not null,           -- printed on journal header, e.g. "Tadelech"
+  business_name text not null,
+  tin text,
+  vat_rate numeric not null default 0.15,
+  created_at timestamptz not null default now()
+);
+
+-- ============================================================
+-- PROFILES (users, linked to auth.users) — admins & sellers
+-- ============================================================
+create table profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  shop_id uuid not null references shops(id) on delete cascade,
+  full_name text not null,
+  role text not null default 'seller' check (role in ('admin', 'seller')),
+  created_at timestamptz not null default now()
+);
+
+-- ============================================================
+-- PRODUCTS (admin-managed catalog)
+-- ============================================================
+create table products (
+  id uuid primary key default gen_random_uuid(),
+  shop_id uuid not null references shops(id) on delete cascade,
+  name text not null,
+  unit_price_before_vat numeric not null check (unit_price_before_vat >= 0),
+  unit_of_measure smallint not null check (unit_of_measure between 2 and 10),
+  is_active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+-- ============================================================
+-- SALES (one row per VAT receipt)
+-- ============================================================
+create table sales (
+  id uuid primary key default gen_random_uuid(),
+  shop_id uuid not null references shops(id) on delete cascade,
+  seller_id uuid not null references profiles(id),
+  vat_category text not null default 'G' check (vat_category in ('G', 'S')),
+  type_of_sale smallint not null default 1 check (type_of_sale in (1, 2, 3)),
+  buyer_tin text,
+  buyer_name text,
+  sale_date date not null,            -- Gregorian, source of truth; convert to Ethiopian for display/export
+  mrc_number text,
+  vat_receipt_number text not null,
+  created_at timestamptz not null default now(),
+  unique (shop_id, vat_receipt_number)
+);
+
+-- ============================================================
+-- SALE ITEMS (line items per receipt)
+-- ============================================================
+create table sale_items (
+  id uuid primary key default gen_random_uuid(),
+  sale_id uuid not null references sales(id) on delete cascade,
+  product_id uuid references products(id),
+  description text not null,          -- snapshot of product name at time of sale
+  unit_of_measure smallint not null check (unit_of_measure between 2 and 10),
+  quantity numeric not null check (quantity > 0),
+  unit_price numeric not null check (unit_price >= 0),  -- before VAT
+  total_value numeric not null,       -- quantity * unit_price
+  vat numeric not null,               -- total_value * vat_rate
+  value_after_vat numeric not null    -- total_value + vat
+);
+
+-- ============================================================
+-- EXPORT TEMPLATE MAPPING (survives Ministry format changes without redeploy)
+-- ============================================================
+create table export_templates (
+  id uuid primary key default gen_random_uuid(),
+  shop_id uuid references shops(id) on delete cascade, -- null = global default
+  name text not null default 'ministry-default',
+  columns jsonb not null,             -- ordered [{header, field, format?}]
+  is_active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+-- ============================================================
+-- RLS
+-- ============================================================
+alter table shops enable row level security;
+alter table profiles enable row level security;
+alter table products enable row level security;
+alter table sales enable row level security;
+alter table sale_items enable row level security;
+alter table export_templates enable row level security;
+
+create function auth_shop_id() returns uuid as $$
+  select shop_id from profiles where id = auth.uid();
+$$ language sql stable security definer;
+
+create function auth_role() returns text as $$
+  select role from profiles where id = auth.uid();
+$$ language sql stable security definer;
+
+create policy "shop members read own shop" on shops
+  for select using (id = auth_shop_id());
+
+create policy "profiles read own shop" on profiles
+  for select using (shop_id = auth_shop_id());
+
+create policy "products read own shop" on products
+  for select using (shop_id = auth_shop_id());
+create policy "admin manage products" on products
+  for all using (shop_id = auth_shop_id() and auth_role() = 'admin')
+  with check (shop_id = auth_shop_id() and auth_role() = 'admin');
+
+create policy "sales read own shop" on sales
+  for select using (shop_id = auth_shop_id());
+create policy "sellers insert own shop sales" on sales
+  for insert with check (shop_id = auth_shop_id() and seller_id = auth.uid());
+create policy "admin update/delete sales" on sales
+  for update using (shop_id = auth_shop_id() and auth_role() = 'admin');
+create policy "admin delete sales" on sales
+  for delete using (shop_id = auth_shop_id() and auth_role() = 'admin');
+
+create policy "sale_items follow parent sale" on sale_items
+  for select using (
+    exists (select 1 from sales s where s.id = sale_id and s.shop_id = auth_shop_id())
+  );
+create policy "sellers insert sale_items for own sale" on sale_items
+  for insert with check (
+    exists (select 1 from sales s where s.id = sale_id and s.shop_id = auth_shop_id() and s.seller_id = auth.uid())
+  );
+
+create policy "export_templates read own or global" on export_templates
+  for select using (shop_id = auth_shop_id() or shop_id is null);
+create policy "admin manage export_templates" on export_templates
+  for all using (shop_id = auth_shop_id() and auth_role() = 'admin')
+  with check (shop_id = auth_shop_id() and auth_role() = 'admin');
+
+-- ============================================================
+-- Default Ministry export template (matches the current XLSX in use)
+-- ============================================================
+insert into export_templates (shop_id, name, columns) values (
+  null,
+  'ministry-default',
+  '[
+    {"header": "VAT CATEGORY", "field": "vat_category"},
+    {"header": "CALENDAR TYPE", "field": "calendar_type"},
+    {"header": "Types of Sale", "field": "type_of_sale"},
+    {"header": "Buyer TIN", "field": "buyer_tin"},
+    {"header": "Buyer name", "field": "buyer_name"},
+    {"header": "Date of Sale", "field": "sale_date_ec", "format": "dd/mm/yyyy"},
+    {"header": "MRC Number", "field": "mrc_number"},
+    {"header": "Vat receipt number", "field": "vat_receipt_number"},
+    {"header": "Description", "field": "description"},
+    {"header": "Unit of Measure", "field": "unit_of_measure"},
+    {"header": "Quantity", "field": "quantity"},
+    {"header": "Unit Price", "field": "unit_price"},
+    {"header": "Total value", "field": "total_value"},
+    {"header": "vat", "field": "vat"},
+    {"header": "value after vat", "field": "value_after_vat"}
+  ]'::jsonb
+);
