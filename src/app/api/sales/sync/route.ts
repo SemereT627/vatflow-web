@@ -5,7 +5,7 @@ import { calcLine } from "@/lib/vat";
 type IncomingItem = {
   productId: string | null;
   description: string;
-  unitOfMeasure: number;
+  unitOfMeasure: string;
   quantity: number;
   unitPrice: number;
 };

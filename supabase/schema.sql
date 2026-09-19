@@ -27,6 +27,23 @@ create table profiles (
 );
 
 -- ============================================================
+-- UNITS (admin-manageable units of measure)
+-- Each unit maps to one of the Ministry's fixed numeric codes (2-10) for
+-- export, even when the internal label (e.g. "M2") isn't in their own list —
+-- unmapped units default to ministry_code 9 (OTHER).
+-- ============================================================
+create table units (
+  id uuid primary key default gen_random_uuid(),
+  shop_id uuid references shops(id) on delete cascade, -- null = global default, available to every shop
+  label text not null,             -- e.g. "Meter square"
+  short_code text not null,        -- e.g. "M2" — shown in pickers and tables
+  ministry_code smallint not null default 9 check (ministry_code between 2 and 10),
+  is_active boolean not null default true,
+  created_at timestamptz not null default now(),
+  unique (shop_id, short_code)
+);
+
+-- ============================================================
 -- PRODUCTS (admin-managed catalog)
 -- ============================================================
 create table products (
@@ -34,7 +51,7 @@ create table products (
   shop_id uuid not null references shops(id) on delete cascade,
   name text not null,
   unit_price_before_vat numeric not null check (unit_price_before_vat >= 0),
-  unit_of_measure smallint not null check (unit_of_measure between 2 and 10),
+  unit_of_measure uuid not null references units(id),
   is_active boolean not null default true,
   created_at timestamptz not null default now()
 );
@@ -67,7 +84,7 @@ create table sale_items (
   sale_id uuid not null references sales(id) on delete cascade,
   product_id uuid references products(id),
   description text not null,          -- snapshot of product name at time of sale
-  unit_of_measure smallint not null check (unit_of_measure between 2 and 10),
+  unit_of_measure uuid not null references units(id),
   quantity numeric not null check (quantity > 0),
   unit_price numeric not null check (unit_price >= 0),  -- before VAT
   total_value numeric not null,       -- quantity * unit_price
@@ -92,6 +109,7 @@ create table export_templates (
 -- ============================================================
 alter table shops enable row level security;
 alter table profiles enable row level security;
+alter table units enable row level security;
 alter table products enable row level security;
 alter table sales enable row level security;
 alter table sale_items enable row level security;
@@ -110,6 +128,12 @@ create policy "shop members read own shop" on shops
 
 create policy "profiles read own shop" on profiles
   for select using (shop_id = auth_shop_id());
+
+create policy "units read own shop or global" on units
+  for select using (shop_id = auth_shop_id() or shop_id is null);
+create policy "admin manage units" on units
+  for all using (shop_id = auth_shop_id() and auth_role() = 'admin')
+  with check (shop_id = auth_shop_id() and auth_role() = 'admin');
 
 create policy "products read own shop" on products
   for select using (shop_id = auth_shop_id());
@@ -140,6 +164,22 @@ create policy "export_templates read own or global" on export_templates
 create policy "admin manage export_templates" on export_templates
   for all using (shop_id = auth_shop_id() and auth_role() = 'admin')
   with check (shop_id = auth_shop_id() and auth_role() = 'admin');
+
+-- ============================================================
+-- Default units (global, shop_id null) — the Ministry's own 2-10 list.
+-- Shops can add their own (e.g. "M2") via the Products page; anything
+-- without a closer match exports under ministry_code 9 (OTHER).
+-- ============================================================
+insert into units (shop_id, label, short_code, ministry_code) values
+  (null, 'Kilogram', 'KG', 2),
+  (null, 'Milliliter', 'ML', 3),
+  (null, 'Gram', 'GM', 4),
+  (null, 'Liter', 'LIT', 5),
+  (null, 'Metric ton', 'MT', 6),
+  (null, 'Pieces', 'PCS', 7),
+  (null, 'Carton', 'CT', 8),
+  (null, 'Other', 'OTHER', 9),
+  (null, 'Piece', 'PC', 10);
 
 -- ============================================================
 -- Default Ministry export template (matches the current XLSX in use)

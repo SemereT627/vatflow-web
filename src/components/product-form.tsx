@@ -2,84 +2,151 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Plus } from "lucide-react";
 import { createProduct } from "@/app/actions/products";
-import { UNIT_OF_MEASURE_LABELS } from "@/lib/vat";
+import type { Unit } from "@/lib/types";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
-export function ProductForm() {
+const schema = z.object({
+  name: z.string().trim().min(1, "Enter a product name."),
+  price: z
+    .string()
+    .min(1, "Enter a price.")
+    .refine((v) => !isNaN(parseFloat(v)) && parseFloat(v) > 0, "Enter a price greater than zero."),
+  unit: z.string().min(1),
+});
+
+type FormValues = z.infer<typeof schema>;
+
+export function ProductForm({ units }: { units: Unit[] }) {
   const router = useRouter();
-  const [name, setName] = useState("");
-  const [price, setPrice] = useState("");
-  const [unit, setUnit] = useState("10");
-  const [error, setError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
+  const defaultValues: FormValues = { name: "", price: "", unit: units[0]?.id ?? "" };
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const priceNum = parseFloat(price);
-    if (!name.trim() || !priceNum || priceNum < 0) {
-      setError("Enter a name and a valid price.");
-      return;
-    }
-    setSubmitting(true);
-    setError(null);
+  const form = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues,
+  });
+
+  async function onSubmit(values: FormValues) {
+    setServerError(null);
     try {
       await createProduct({
-        name: name.trim(),
-        unit_price_before_vat: priceNum,
-        unit_of_measure: parseInt(unit, 10),
+        name: values.name,
+        unit_price_before_vat: parseFloat(values.price),
+        unit_of_measure: values.unit,
       });
-      setName("");
-      setPrice("");
+      form.reset(defaultValues);
+      setOpen(false);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save product.");
-    } finally {
-      setSubmitting(false);
+      setServerError(err instanceof Error ? err.message : "Could not save product.");
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-2 rounded-lg border border-gray-200 p-4">
-      <div className="flex-1 min-w-[160px]">
-        <label className="block text-xs text-gray-500">Name</label>
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-        />
-      </div>
-      <div className="w-28">
-        <label className="block text-xs text-gray-500">Price (before VAT)</label>
-        <input
-          type="number"
-          step="any"
-          value={price}
-          onChange={(e) => setPrice(e.target.value)}
-          className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-        />
-      </div>
-      <div className="w-28">
-        <label className="block text-xs text-gray-500">Unit</label>
-        <select
-          value={unit}
-          onChange={(e) => setUnit(e.target.value)}
-          className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-        >
-          {Object.entries(UNIT_OF_MEASURE_LABELS).map(([id, label]) => (
-            <option key={id} value={id}>
-              {label}
-            </option>
-          ))}
-        </select>
-      </div>
-      <button
-        type="submit"
-        disabled={submitting}
-        className="rounded-md bg-gray-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
-      >
-        Add product
-      </button>
-      {error && <p className="w-full text-sm text-red-600">{error}</p>}
-    </form>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) form.reset(defaultValues);
+      }}
+    >
+      <DialogTrigger asChild>
+        <Button>
+          <Plus />
+          Add product
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Add product</DialogTitle>
+          <DialogDescription>Products appear in the seller&apos;s item picker when recording a sale.</DialogDescription>
+        </DialogHeader>
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g. Teff — Nech" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="grid grid-cols-2 gap-3">
+              <FormField
+                control={form.control}
+                name="price"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Price (before VAT)</FormLabel>
+                    <FormControl>
+                      <Input type="number" step="any" min="0" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="unit"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Unit</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {units.map((u) => (
+                          <SelectItem key={u.id} value={u.id}>
+                            {u.label} ({u.short_code})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {serverError && <p className="text-sm text-critical">{serverError}</p>}
+
+            <DialogFooter>
+              <Button type="submit" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting ? "Saving…" : "Add product"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
   );
 }

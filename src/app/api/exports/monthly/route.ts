@@ -3,7 +3,6 @@ import ExcelJS from "exceljs";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/session";
 import { ethiopianMonthRange, formatEthiopianDate, journalTitle } from "@/lib/ethiopian";
-import { UNIT_OF_MEASURE_LABELS } from "@/lib/vat";
 
 type TemplateColumn = { header: string; field: string; format?: string };
 
@@ -19,7 +18,8 @@ function buildRow(sale: SaleWithItems, item: SaleWithItems["sale_items"][number]
     mrc_number: sale.mrc_number ?? "",
     vat_receipt_number: sale.vat_receipt_number,
     description: item.description,
-    unit_of_measure: UNIT_OF_MEASURE_LABELS[item.unit_of_measure] ?? item.unit_of_measure,
+    unit_of_measure: item.units?.ministry_code ?? 9,
+    unit_label: item.units?.short_code ?? "",
     quantity: item.quantity,
     unit_price: item.unit_price,
     total_value: item.total_value,
@@ -38,12 +38,12 @@ type SaleWithItems = {
   vat_receipt_number: string;
   sale_items: {
     description: string;
-    unit_of_measure: number;
     quantity: number;
     unit_price: number;
     total_value: number;
     vat: number;
     value_after_vat: number;
+    units: { ministry_code: number; short_code: string } | null;
   }[];
 };
 
@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
   const { data: sales, error } = await supabase
     .from("sales")
     .select(
-      "vat_category, type_of_sale, buyer_tin, buyer_name, sale_date, mrc_number, vat_receipt_number, sale_items(description, unit_of_measure, quantity, unit_price, total_value, vat, value_after_vat)"
+      "vat_category, type_of_sale, buyer_tin, buyer_name, sale_date, mrc_number, vat_receipt_number, sale_items(description, quantity, unit_price, total_value, vat, value_after_vat, units(ministry_code, short_code))"
     )
     .eq("shop_id", session.shop.id)
     .gte("sale_date", start)
@@ -92,7 +92,7 @@ export async function GET(request: NextRequest) {
 
   sheet.columns = columns.map((c) => ({ header: c.header, key: c.field, width: 20 }));
 
-  for (const sale of (sales ?? []) as SaleWithItems[]) {
+  for (const sale of (sales ?? []) as unknown as SaleWithItems[]) {
     for (const item of sale.sale_items) {
       sheet.addRow(buildRow(sale, item));
     }

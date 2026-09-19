@@ -13,12 +13,21 @@ export type Profile = {
   role: "admin" | "seller";
 };
 
+export type Unit = {
+  id: string;
+  shop_id: string | null;
+  label: string;
+  short_code: string;
+  ministry_code: number;
+  is_active: boolean;
+};
+
 export type Product = {
   id: string;
   shop_id: string;
   name: string;
   unit_price_before_vat: number;
-  unit_of_measure: number;
+  unit_of_measure: string;
   is_active: boolean;
 };
 
@@ -40,7 +49,7 @@ export type SaleItem = {
   sale_id: string;
   product_id: string | null;
   description: string;
-  unit_of_measure: number;
+  unit_of_measure: string;
   quantity: number;
   unit_price: number;
   total_value: number;
@@ -51,7 +60,7 @@ export type SaleItem = {
 export type NewSaleItemInput = {
   product_id: string | null;
   description: string;
-  unit_of_measure: number;
+  unit_of_measure: string;
   quantity: number;
   unit_price: number;
 };
