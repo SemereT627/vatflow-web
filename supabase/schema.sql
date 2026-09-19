@@ -46,6 +46,7 @@ create table sales (
   id uuid primary key default gen_random_uuid(),
   shop_id uuid not null references shops(id) on delete cascade,
   seller_id uuid not null references profiles(id),
+  client_id text,                     -- client-generated UUID from the offline mobile queue; idempotency key for sync retries
   vat_category text not null default 'G' check (vat_category in ('G', 'S')),
   type_of_sale smallint not null default 1 check (type_of_sale in (1, 2, 3)),
   buyer_tin text,
@@ -54,7 +55,8 @@ create table sales (
   mrc_number text,
   vat_receipt_number text not null,
   created_at timestamptz not null default now(),
-  unique (shop_id, vat_receipt_number)
+  unique (shop_id, vat_receipt_number),
+  unique (shop_id, client_id)
 );
 
 -- ============================================================
