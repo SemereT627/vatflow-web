@@ -11,7 +11,7 @@ create table shops (
   owner_name text not null,           -- printed on journal header, e.g. "Tadelech"
   business_name text not null,
   tin text,
-  vat_rate numeric not null default 0.15,
+  vat_rate numeric not null default 0.15 check (vat_rate >= 0 and vat_rate <= 1),
   created_at timestamptz not null default now()
 );
 
@@ -72,6 +72,11 @@ create table sales (
   mrc_number text,
   vat_receipt_number text not null,
   created_at timestamptz not null default now(),
+  -- Soft void: the receipt number was already handed to a buyer, so a mistake is voided
+  -- (kept, excluded from totals/exports) rather than deleted outright.
+  voided_at timestamptz,
+  voided_reason text,
+  voided_by uuid references profiles(id),
   unique (shop_id, vat_receipt_number),
   unique (shop_id, client_id)
 );
@@ -125,6 +130,9 @@ $$ language sql stable security definer;
 
 create policy "shop members read own shop" on shops
   for select using (id = auth_shop_id());
+create policy "admin update own shop" on shops
+  for update using (id = auth_shop_id() and auth_role() = 'admin')
+  with check (id = auth_shop_id() and auth_role() = 'admin');
 
 create policy "profiles read own shop" on profiles
   for select using (shop_id = auth_shop_id());

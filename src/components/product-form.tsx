@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Plus } from "lucide-react";
 import { createProduct } from "@/app/actions/products";
+import { PRODUCTS_QUERY_PREFIX } from "@/lib/products-query";
 import type { Unit } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +37,7 @@ type FormValues = z.infer<typeof schema>;
 
 export function ProductForm({ units }: { units: Unit[] }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const defaultValues: FormValues = { name: "", price: "", unit: units[0]?.id ?? "" };
@@ -54,6 +57,7 @@ export function ProductForm({ units }: { units: Unit[] }) {
       });
       form.reset(defaultValues);
       setOpen(false);
+      queryClient.invalidateQueries({ queryKey: PRODUCTS_QUERY_PREFIX });
       router.refresh();
     } catch (err) {
       setServerError(err instanceof Error ? err.message : "Could not save product.");

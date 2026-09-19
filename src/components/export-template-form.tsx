@@ -83,12 +83,12 @@ export function ExportTemplateForm({ columns }: { columns: TemplateColumn[] }) {
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
           <div className="max-h-80 space-y-2 overflow-y-auto pr-1">
             {fields.map((row, index) => (
-              <div key={row.id} className="flex items-end gap-2 rounded-lg border border-line p-2.5">
+              <div key={row.id} className="flex flex-col gap-2 rounded-lg border border-line p-2.5 sm:flex-row sm:items-end">
                 <div className="flex-1 space-y-1">
                   <label className="block text-[11px] font-semibold text-ink-soft">Column header</label>
                   <Input {...form.register(`columns.${index}.header` as const)} placeholder="e.g. VAT CATEGORY" />
                 </div>
-                <div className="w-52 space-y-1">
+                <div className="space-y-1 sm:w-52">
                   <label className="block text-[11px] font-semibold text-ink-soft">Data field</label>
                   <Controller
                     control={form.control}
@@ -109,7 +109,7 @@ export function ExportTemplateForm({ columns }: { columns: TemplateColumn[] }) {
                     )}
                   />
                 </div>
-                <div className="flex gap-1 pb-0.5">
+                <div className="flex justify-end gap-1 sm:pb-0.5">
                   <Button
                     type="button"
                     variant="ghost"

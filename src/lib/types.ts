@@ -42,6 +42,9 @@ export type Sale = {
   sale_date: string; // ISO Gregorian date
   mrc_number: string | null;
   vat_receipt_number: string;
+  voided_at: string | null;
+  voided_reason: string | null;
+  voided_by: string | null;
 };
 
 export type SaleItem = {

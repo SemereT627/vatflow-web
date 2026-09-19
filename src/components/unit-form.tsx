@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Pencil, Settings2, Trash2, X } from "lucide-react";
 import { createUnit, deleteUnit, setUnitActive, updateUnit } from "@/app/actions/units";
+import { PRODUCTS_QUERY_PREFIX } from "@/lib/products-query";
 import type { Unit } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +37,7 @@ const DEFAULT_VALUES: FormValues = { label: "", short_code: "" };
 
 export function UnitForm({ units }: { units: Unit[] }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -49,6 +52,7 @@ export function UnitForm({ units }: { units: Unit[] }) {
     try {
       await createUnit(values);
       form.reset(DEFAULT_VALUES);
+      queryClient.invalidateQueries({ queryKey: PRODUCTS_QUERY_PREFIX });
       router.refresh();
     } catch (err) {
       setServerError(err instanceof Error ? err.message : "Could not save unit.");
@@ -142,6 +146,7 @@ function ViewRow({
   onError: (msg: string | null) => void;
 }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [pending, setPending] = useState(false);
   const isCustom = !!unit.shop_id;
 
@@ -150,6 +155,7 @@ function ViewRow({
     onError(null);
     try {
       await setUnitActive(unit.id, !unit.is_active);
+      queryClient.invalidateQueries({ queryKey: PRODUCTS_QUERY_PREFIX });
       router.refresh();
     } catch (err) {
       onError(err instanceof Error ? err.message : "Could not update unit.");
@@ -164,6 +170,7 @@ function ViewRow({
     onError(null);
     try {
       await deleteUnit(unit.id);
+      queryClient.invalidateQueries({ queryKey: PRODUCTS_QUERY_PREFIX });
       router.refresh();
     } catch (err) {
       onError(err instanceof Error ? err.message : "Could not delete unit.");
@@ -218,6 +225,7 @@ function EditRow({
   onError: (msg: string | null) => void;
 }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [label, setLabel] = useState(unit.label);
   const [shortCode, setShortCode] = useState(unit.short_code);
   const [saving, setSaving] = useState(false);
@@ -231,6 +239,7 @@ function EditRow({
     onError(null);
     try {
       await updateUnit(unit.id, { label: label.trim(), short_code: shortCode.trim() });
+      queryClient.invalidateQueries({ queryKey: PRODUCTS_QUERY_PREFIX });
       router.refresh();
       onDone();
     } catch (err) {

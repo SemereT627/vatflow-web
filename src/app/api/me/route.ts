@@ -12,27 +12,28 @@ export async function GET(request: NextRequest) {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("shop_id")
+    .select("full_name, role, shop_id")
     .eq("id", user.id)
     .single();
   if (!profile) return NextResponse.json({ error: "No shop for this user." }, { status: 403 });
 
-  const { data: products, error } = await supabase
-    .from("products")
-    .select("id, name, unit_price_before_vat, unit_of_measure, units(short_code)")
-    .eq("shop_id", profile.shop_id)
-    .eq("is_active", true)
-    .order("name");
+  const { data: shop } = await supabase
+    .from("shops")
+    .select("business_name, tin, vat_rate")
+    .eq("id", profile.shop_id)
+    .single();
+  if (!shop) return NextResponse.json({ error: "Shop not found." }, { status: 404 });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
-  const data = (products ?? []).map((p) => ({
-    id: p.id,
-    name: p.name,
-    unit_price_before_vat: p.unit_price_before_vat,
-    unit_of_measure: p.unit_of_measure,
-    unit_short_code: (p.units as unknown as { short_code: string } | null)?.short_code ?? "—",
-  }));
-
-  return NextResponse.json({ data });
+  return NextResponse.json({
+    data: {
+      email: user.email,
+      full_name: profile.full_name,
+      role: profile.role,
+      shop: {
+        business_name: shop.business_name,
+        tin: shop.tin,
+        vat_rate: shop.vat_rate,
+      },
+    },
+  });
 }

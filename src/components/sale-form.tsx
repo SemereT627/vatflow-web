@@ -2,11 +2,13 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Plus, Trash2 } from "lucide-react";
 import { createSale } from "@/app/actions/sales";
+import { SALES_QUERY_PREFIX } from "@/lib/sales-query";
 import { calcLine } from "@/lib/vat";
 import type { NewSaleItemInput } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -49,6 +51,7 @@ type FormValues = z.infer<typeof schema>;
 
 export function SaleForm({ products, vatRate }: { products: SaleableProduct[]; vatRate: number }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [showBuyer, setShowBuyer] = useState(false);
   const [lines, setLines] = useState<Line[]>([]);
@@ -133,6 +136,7 @@ export function SaleForm({ products, vatRate }: { products: SaleableProduct[]; v
       });
       setOpen(false);
       resetAll();
+      queryClient.invalidateQueries({ queryKey: SALES_QUERY_PREFIX });
       router.refresh();
     } catch (err) {
       setServerError(err instanceof Error ? err.message : "Could not save the sale.");

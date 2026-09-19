@@ -69,6 +69,7 @@ export async function GET(request: NextRequest) {
       "vat_category, type_of_sale, buyer_tin, buyer_name, sale_date, mrc_number, vat_receipt_number, sale_items(description, quantity, unit_price, total_value, vat, value_after_vat, units(export_code, short_code))"
     )
     .eq("shop_id", session.shop.id)
+    .is("voided_at", null)
     .gte("sale_date", start)
     .lte("sale_date", end)
     .order("sale_date", { ascending: true });

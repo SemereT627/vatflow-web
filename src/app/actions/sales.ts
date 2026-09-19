@@ -59,3 +59,70 @@ export async function createSale(input: NewSaleInput) {
   revalidatePath("/sales");
   return sale.id;
 }
+
+/** Only non-financial fields — quantity, price, VAT category, receipt number, and date stay
+ * locked once recorded, since they're already on a physical receipt and feed the VAT total. */
+export async function updateSale(
+  saleId: string,
+  input: { buyer_name: string | null; buyer_tin: string | null; mrc_number: string | null }
+) {
+  const session = await getCurrentProfile();
+  if (!session || session.profile.role !== "admin") {
+    throw new Error("Only admins can edit a recorded sale.");
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("sales")
+    .update({
+      buyer_name: input.buyer_name || null,
+      buyer_tin: input.buyer_tin || null,
+      mrc_number: input.mrc_number || null,
+    })
+    .eq("id", saleId)
+    .eq("shop_id", session.shop.id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/sales");
+}
+
+export async function voidSale(saleId: string, reason: string) {
+  const session = await getCurrentProfile();
+  if (!session || session.profile.role !== "admin") {
+    throw new Error("Only admins can void a sale.");
+  }
+  if (!reason.trim()) {
+    throw new Error("A reason is required to void a sale.");
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("sales")
+    .update({
+      voided_at: new Date().toISOString(),
+      voided_reason: reason.trim(),
+      voided_by: session.profile.id,
+    })
+    .eq("id", saleId)
+    .eq("shop_id", session.shop.id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/sales");
+}
+
+export async function restoreSale(saleId: string) {
+  const session = await getCurrentProfile();
+  if (!session || session.profile.role !== "admin") {
+    throw new Error("Only admins can restore a voided sale.");
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("sales")
+    .update({ voided_at: null, voided_reason: null, voided_by: null })
+    .eq("id", saleId)
+    .eq("shop_id", session.shop.id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/sales");
+}

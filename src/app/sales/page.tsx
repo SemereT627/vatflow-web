@@ -1,23 +1,35 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/session";
-import { formatEthiopianDate } from "@/lib/ethiopian";
 import { SaleForm, type SaleableProduct } from "@/components/sale-form";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { SalesTable } from "@/components/sales-table";
+import { SALES_PAGE_SIZE, type SaleRow } from "@/lib/sales-query";
 
-export default async function SalesPage() {
+export default async function SalesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   const session = await getCurrentProfile();
   if (!session) redirect("/login");
 
   const supabase = await createClient();
-  const [{ data: sales }, { data: products }] = await Promise.all([
+  const requestedPage = parseInt((await searchParams).page ?? "1", 10);
+  const page = isNaN(requestedPage) || requestedPage < 1 ? 1 : requestedPage;
+  const from = (page - 1) * SALES_PAGE_SIZE;
+  const to = from + SALES_PAGE_SIZE - 1;
+
+  const [{ count: totalCount }, { data: sales }, { data: products }] = await Promise.all([
+    supabase.from("sales").select("id", { count: "exact", head: true }).eq("shop_id", session.shop.id),
     supabase
       .from("sales")
-      .select("id, vat_receipt_number, sale_date, buyer_name, sale_items(value_after_vat)")
+      .select(
+        "id, vat_receipt_number, sale_date, buyer_name, buyer_tin, mrc_number, voided_at, voided_reason, sale_items(value_after_vat)"
+      )
       .eq("shop_id", session.shop.id)
       .order("sale_date", { ascending: false })
       .order("created_at", { ascending: false })
-      .limit(50),
+      .range(from, to),
     supabase
       .from("products")
       .select("id, name, unit_price_before_vat, unit_of_measure, units(short_code)")
@@ -34,48 +46,28 @@ export default async function SalesPage() {
     unit_short_code: (p.units as unknown as { short_code: string } | null)?.short_code ?? "—",
   })) satisfies SaleableProduct[];
 
+  const rows = (sales ?? []) as unknown as SaleRow[];
+  const total = totalCount ?? 0;
+
   return (
-    <div className="px-6 py-6 md:px-10">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-xl font-bold">Recent sales</h1>
+    <div className="flex min-h-0 flex-1 flex-col px-4 py-6 sm:px-6 md:px-10">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold">Recent sales</h1>
+          <p className="mt-0.5 text-sm text-ink-soft">
+            {total} sale{total === 1 ? "" : "s"}
+          </p>
+        </div>
         <SaleForm products={saleableProducts} vatRate={session.shop.vat_rate} />
       </div>
 
-      <div className="rounded-xl border border-line bg-surface shadow-sm">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Receipt</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Buyer</TableHead>
-              <TableHead className="text-right">Value after VAT</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {(sales ?? []).map((sale) => {
-              const total = (sale.sale_items as { value_after_vat: number }[]).reduce(
-                (sum, item) => sum + item.value_after_vat,
-                0
-              );
-              return (
-                <TableRow key={sale.id}>
-                  <TableCell className="font-semibold">#{sale.vat_receipt_number}</TableCell>
-                  <TableCell className="text-ink-soft">{formatEthiopianDate(sale.sale_date)}</TableCell>
-                  <TableCell className="text-ink-soft">{sale.buyer_name ?? "Walk-in customer"}</TableCell>
-                  <TableCell className="num text-right font-semibold">{total.toFixed(2)} ETB</TableCell>
-                </TableRow>
-              );
-            })}
-            {(sales ?? []).length === 0 && (
-              <TableRow>
-                <TableCell colSpan={4} className="py-10 text-center text-sm text-ink-soft">
-                  No sales recorded yet.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <SalesTable
+        shopId={session.shop.id}
+        isAdmin={session.profile.role === "admin"}
+        initialPage={page}
+        initialRows={rows}
+        initialTotal={total}
+      />
     </div>
   );
 }

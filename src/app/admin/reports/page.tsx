@@ -23,13 +23,15 @@ export default async function AdminReportsPage() {
   const columns = (template?.columns as TemplateColumn[]) ?? [];
 
   return (
-    <div className="px-6 py-6 md:px-10">
-      <div className="flex items-center justify-between">
+    <div className="px-4 py-6 sm:px-6 md:px-10">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold">Monthly journal</h1>
-          <p className="text-sm text-ink-soft">Download VAT receipts in the Ministry of Revenue XLSX format.</p>
+          <p className="text-sm text-ink-soft">
+            Download VAT receipts in the Ministry of Revenue XLSX format.
+          </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <ExportTemplateForm columns={columns} />
           <ReportForm />
         </div>
