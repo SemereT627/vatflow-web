@@ -10,6 +10,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { createSale } from "@/app/actions/sales";
 import { SALES_QUERY_PREFIX } from "@/lib/sales-query";
 import { calcLine } from "@/lib/vat";
+import { formatEthiopianDate } from "@/lib/ethiopian";
 import type { NewSaleItemInput } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -217,6 +218,9 @@ export function SaleForm({
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
+                    {field.value && (
+                      <p className="text-xs text-ink-soft">{formatEthiopianDate(field.value)} E.C.</p>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
