@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { getCurrentProfile } from "@/lib/session";
 import { SignOutButton } from "@/components/sign-out-button";
 import { NavLinks, type NavGroup } from "@/components/nav-links";
@@ -85,8 +86,8 @@ export async function Sidebar() {
 
       <aside className="hidden flex-none flex-col gap-6 overflow-y-auto border-line bg-surface px-4 py-6 md:sticky md:top-0 md:flex md:h-screen md:w-56 md:border-r">
         <div className="flex items-center gap-2.5 px-1">
-          <div className="flex h-8 w-8 flex-none items-center justify-center rounded-md bg-brand font-heading text-sm font-bold text-brand-ink">
-            VF
+          <div className="relative h-8 w-8 flex-none">
+            <Image src="/brand/mark.png" alt="VatFlow" fill sizes="32px" className="object-contain" />
           </div>
           <div>
             <div className="font-heading text-base font-bold leading-none">VatFlow</div>

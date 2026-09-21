@@ -41,5 +41,5 @@ export const config = {
   // bearer token (see lib/supabase/route.ts), not the cookie session this
   // middleware checks, so redirecting them to /login would just hand back
   // HTML where the client expects JSON.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|login|api).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|brand|login|api).*)"],
 };

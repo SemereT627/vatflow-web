@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu } from "lucide-react";
@@ -29,8 +30,8 @@ export function MobileNav({
   return (
     <div className="flex items-center justify-between border-b border-line bg-surface px-4 py-3 md:hidden">
       <div className="flex items-center gap-2.5">
-        <div className="flex h-8 w-8 flex-none items-center justify-center rounded-md bg-brand font-heading text-sm font-bold text-brand-ink">
-          VF
+        <div className="relative h-8 w-8 flex-none">
+          <Image src="/brand/mark.png" alt="VatFlow" fill sizes="32px" className="object-contain" />
         </div>
         <div className="font-heading text-base font-bold leading-none">VatFlow</div>
       </div>
@@ -50,8 +51,8 @@ export function MobileNav({
         >
           <div className="flex h-full flex-col gap-4">
             <div className="flex items-center gap-2.5 px-1 pt-1">
-              <div className="flex h-8 w-8 flex-none items-center justify-center rounded-md bg-brand font-heading text-sm font-bold text-brand-ink">
-                VF
+              <div className="relative h-8 w-8 flex-none">
+                <Image src="/brand/mark.png" alt="VatFlow" fill sizes="32px" className="object-contain" />
               </div>
               <div>
                 <div className="font-heading text-base font-bold leading-none">VatFlow</div>

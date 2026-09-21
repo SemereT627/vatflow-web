@@ -25,6 +25,21 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "VatFlow",
   description: "Point-of-sale VAT recording and Ministry of Revenue reporting.",
+  icons: {
+    icon: "/brand/icon.png",
+    apple: "/brand/icon.png",
+  },
+  openGraph: {
+    title: "VatFlow",
+    description: "Point-of-sale VAT recording and Ministry of Revenue reporting.",
+    images: ["/brand/og-banner.png"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "VatFlow",
+    description: "Point-of-sale VAT recording and Ministry of Revenue reporting.",
+    images: ["/brand/og-banner.png"],
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

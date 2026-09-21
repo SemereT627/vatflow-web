@@ -45,9 +45,10 @@ export default async function AdminProductsPage({
     supabase
       .from("products")
       .select(
-        "id, name, unit_price_before_vat, unit_of_measure, is_active, units(short_code)",
+        "id, name, unit_price_before_vat, unit_of_measure, is_active, machine_code, units(short_code)",
       )
       .eq("shop_id", session.shop.id)
+      .order("machine_code", { ascending: true, nullsFirst: false })
       .order("created_at", { ascending: true })
       .range(from, to),
   ]);

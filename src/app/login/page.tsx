@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Loader2, Receipt, TrendingUp, ShieldCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -54,8 +55,8 @@ export default function LoginPage() {
       <div className="flex items-center justify-center px-6 py-12 sm:px-10">
         <div className="w-full max-w-sm">
           <div className="mb-8 flex items-center gap-2.5">
-            <div className="flex h-10 w-10 flex-none items-center justify-center rounded-lg bg-brand font-heading text-base font-bold text-brand-ink">
-              VF
+            <div className="relative h-10 w-10 flex-none">
+              <Image src="/brand/mark.png" alt="VatFlow" fill sizes="40px" className="object-contain" />
             </div>
             <div>
               <div className="font-heading text-lg font-bold leading-none">VatFlow</div>
