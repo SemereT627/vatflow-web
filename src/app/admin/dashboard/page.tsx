@@ -34,7 +34,7 @@ async function loadSales(
   const { data: rows } = await supabase
     .from("sales")
     .select(
-      "id, seller_id, vat_category, sale_date, vat_receipt_number, buyer_name, buyer_tin, client_id, profiles(full_name), sale_items(description, total_value, vat, value_after_vat)",
+      "id, seller_id, vat_category, sale_date, vat_receipt_number, buyer_name, buyer_tin, client_id, profiles!sales_seller_id_fkey(full_name), sale_items(description, total_value, vat, value_after_vat)",
     )
     .eq("shop_id", shopId)
     .is("voided_at", null)
