@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { escapeLike } from "@/lib/utils";
 
 export const SELLERS_PAGE_SIZE = 11;
 
@@ -22,20 +23,26 @@ function isCurrentlyBanned(bannedUntil: string | null): boolean {
  * the client re-fetches from for subsequent pages. */
 export async function getSellersPage(
   shopId: string,
-  page: number
+  page: number,
+  search: string = ""
 ): Promise<{ rows: SellerRow[]; total: number }> {
   const supabase = await createClient();
   const from = (page - 1) * SELLERS_PAGE_SIZE;
   const to = from + SELLERS_PAGE_SIZE - 1;
 
+  let profilesQuery = supabase
+    .from("profiles")
+    .select("id, full_name, created_at", { count: "exact" })
+    .eq("shop_id", shopId)
+    .eq("role", "seller");
+
+  const term = search.trim();
+  if (term) {
+    profilesQuery = profilesQuery.ilike("full_name", `%${escapeLike(term)}%`);
+  }
+
   const [{ data: profiles, count }, { data: shopSales }] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("id, full_name, created_at", { count: "exact" })
-      .eq("shop_id", shopId)
-      .eq("role", "seller")
-      .order("created_at", { ascending: true })
-      .range(from, to),
+    profilesQuery.order("created_at", { ascending: true }).range(from, to),
     supabase.from("sales").select("seller_id").eq("shop_id", shopId),
   ]);
 

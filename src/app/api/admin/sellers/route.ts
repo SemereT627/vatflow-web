@@ -11,7 +11,8 @@ export async function GET(request: NextRequest) {
 
   const requestedPage = parseInt(request.nextUrl.searchParams.get("page") ?? "1", 10);
   const page = isNaN(requestedPage) || requestedPage < 1 ? 1 : requestedPage;
+  const search = request.nextUrl.searchParams.get("q") ?? "";
 
-  const { rows, total } = await getSellersPage(session.shop.id, page);
+  const { rows, total } = await getSellersPage(session.shop.id, page, search);
   return NextResponse.json({ rows, total });
 }

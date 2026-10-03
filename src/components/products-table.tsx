@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useDebounce } from "@/hooks/use-debounce";
 import {
   PRODUCTS_PAGE_SIZE,
   fetchProductsPage,
@@ -12,6 +14,7 @@ import {
 } from "@/lib/products-query";
 import type { Unit } from "@/lib/types";
 import { ProductStatusToggle, ProductActions } from "@/components/product-row-actions";
+import { TableSearchInput } from "@/components/table-search-input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export function ProductsTable({
@@ -33,18 +36,39 @@ export function ProductsTable({
   const searchParams = useSearchParams();
   const requestedPage = parseInt(searchParams.get("page") ?? String(initialPage), 10);
   const page = isNaN(requestedPage) || requestedPage < 1 ? 1 : requestedPage;
+  const urlSearch = searchParams.get("q") ?? "";
+
+  const [searchInput, setSearchInput] = useState(urlSearch);
+  const [syncedUrlSearch, setSyncedUrlSearch] = useState(urlSearch);
+  if (urlSearch !== syncedUrlSearch) {
+    setSyncedUrlSearch(urlSearch);
+    setSearchInput(urlSearch);
+  }
+  const search = useDebounce(searchInput, 300);
+
+  function goToPage(next: number, nextSearch: string = urlSearch) {
+    const params = new URLSearchParams();
+    if (nextSearch) params.set("q", nextSearch);
+    params.set("page", String(next));
+    router.push(`/admin/products?${params}`, { scroll: false });
+  }
+
+  useEffect(() => {
+    if (search !== urlSearch) goToPage(1, search);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
 
   const stats = useQuery({
-    queryKey: productsStatsKey(shopId),
-    queryFn: () => fetchProductsStats(shopId),
-    initialData: { total: initialTotal, activeCount: initialActiveCount },
+    queryKey: productsStatsKey(shopId, urlSearch),
+    queryFn: () => fetchProductsStats(shopId, urlSearch),
+    initialData: urlSearch ? undefined : { total: initialTotal, activeCount: initialActiveCount },
   });
 
   const list = useQuery({
-    queryKey: productsListKey(shopId, page),
-    queryFn: () => fetchProductsPage(shopId, page),
+    queryKey: productsListKey(shopId, page, urlSearch),
+    queryFn: () => fetchProductsPage(shopId, page, urlSearch),
     placeholderData: keepPreviousData,
-    initialData: page === initialPage ? { rows: initialRows } : undefined,
+    initialData: page === initialPage && !urlSearch ? { rows: initialRows } : undefined,
   });
 
   const total = stats.data?.total ?? 0;
@@ -55,13 +79,12 @@ export function ProductsTable({
   const rangeStart = total === 0 ? 0 : from + 1;
   const rangeEnd = Math.min(from + rows.length, total);
 
-  function goToPage(next: number) {
-    router.push(`/admin/products?page=${next}`, { scroll: false });
-  }
-
   return (
     <>
       <div className="mt-6 flex min-h-0 flex-1 flex-col rounded-xl border border-line bg-surface shadow-sm">
+        <div className="flex items-center border-b border-line px-4 py-3">
+          <TableSearchInput value={searchInput} onChange={setSearchInput} placeholder="Search products…" />
+        </div>
         <div className={`min-h-0 flex-1 overflow-y-auto transition-opacity ${list.isFetching ? "opacity-60" : ""}`}>
           <Table>
             <TableHeader>
@@ -92,8 +115,14 @@ export function ProductsTable({
               {rows.length === 0 && (
                 <TableRow className="hover:bg-transparent">
                   <TableCell colSpan={6} className="py-20 text-center">
-                    <p className="text-sm font-semibold">No products yet</p>
-                    <p className="mt-1 text-sm text-ink-soft">Add your first item above.</p>
+                    {urlSearch ? (
+                      <p className="text-sm text-ink-soft">No results for &quot;{urlSearch}&quot;.</p>
+                    ) : (
+                      <>
+                        <p className="text-sm font-semibold">No products yet</p>
+                        <p className="mt-1 text-sm text-ink-soft">Add your first item above.</p>
+                      </>
+                    )}
                   </TableCell>
                 </TableRow>
               )}
