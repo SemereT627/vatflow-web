@@ -1,6 +1,22 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+// A refresh token can keep a session alive indefinitely as long as the user
+// keeps making requests, so relying on the Supabase access token's own ~1hr
+// expiry never actually signs anyone out. This cookie tracks the last time
+// we saw a request from this session; once it's stale we force a sign-out
+// instead of silently refreshing.
+const INACTIVITY_LIMIT_MS = 2 * 60 * 60 * 1000; // 2 hours
+const LAST_ACTIVITY_COOKIE = "last_activity";
+
+function redirectToLogin(request: NextRequest, from: NextResponse) {
+  const url = request.nextUrl.clone();
+  url.pathname = "/login";
+  const redirect = NextResponse.redirect(url);
+  from.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie));
+  return redirect;
+}
+
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
@@ -23,14 +39,33 @@ export async function proxy(request: NextRequest) {
     }
   );
 
+  const lastActivity = request.cookies.get(LAST_ACTIVITY_COOKIE)?.value;
+  const now = Date.now();
+  const inactive = !!lastActivity && now - Number(lastActivity) > INACTIVITY_LIMIT_MS;
+
+  if (inactive) {
+    await supabase.auth.signOut();
+    const redirect = redirectToLogin(request, response);
+    redirect.cookies.delete(LAST_ACTIVITY_COOKIE);
+    return redirect;
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user && !request.nextUrl.pathname.startsWith("/login")) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
+    return redirectToLogin(request, response);
+  }
+
+  if (user) {
+    response.cookies.set(LAST_ACTIVITY_COOKIE, String(now), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: INACTIVITY_LIMIT_MS / 1000,
+    });
   }
 
   return response;
