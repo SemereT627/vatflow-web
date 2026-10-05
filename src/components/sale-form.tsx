@@ -11,6 +11,7 @@ import { createSale } from "@/app/actions/sales";
 import { SALES_QUERY_PREFIX } from "@/lib/sales-query";
 import { calcLine } from "@/lib/vat";
 import { formatEthiopianDate } from "@/lib/ethiopian";
+import { formatMoney } from "@/lib/utils";
 import type { NewSaleItemInput } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -290,7 +291,7 @@ export function SaleForm({
                           <TableCell className="pl-0">{line.description}</TableCell>
                           <TableCell>{line.unit_label}</TableCell>
                           <TableCell className="num">{line.quantity}</TableCell>
-                          <TableCell className="num text-right">{t.valueAfterVat.toFixed(2)}</TableCell>
+                          <TableCell className="num text-right">{formatMoney(t.valueAfterVat)}</TableCell>
                           <TableCell className="text-right">
                             <Button type="button" variant="ghost" size="icon" onClick={() => removeLine(line.key)}>
                               <Trash2 className="h-3.5 w-3.5 text-critical" />
@@ -359,7 +360,7 @@ export function SaleForm({
 
             <div className="flex items-center justify-between rounded-lg bg-surface-2 px-4 py-3 text-sm">
               <span className="font-semibold text-ink-soft">Total (incl. VAT)</span>
-              <span className="num text-base font-bold">{totals.valueAfterVat.toFixed(2)} ETB</span>
+              <span className="num text-base font-bold">{formatMoney(totals.valueAfterVat)} ETB</span>
             </div>
 
             {serverError && <p className="text-sm text-critical">{serverError}</p>}

@@ -13,8 +13,13 @@ export type ProductRow = {
   units: { short_code: string } | null;
 };
 
-export function productsListKey(shopId: string, page: number, search: string = "") {
-  return ["products", "list", shopId, page, search] as const;
+export function productsListKey(
+  shopId: string,
+  page: number,
+  search: string = "",
+  pageSize: number = PRODUCTS_PAGE_SIZE,
+) {
+  return ["products", "list", shopId, page, search, pageSize] as const;
 }
 
 export function productsStatsKey(shopId: string, search: string = "") {
@@ -27,15 +32,18 @@ export const PRODUCTS_QUERY_PREFIX = ["products"] as const;
 export async function fetchProductsPage(
   shopId: string,
   page: number,
-  search: string = ""
+  search: string = "",
+  pageSize: number = PRODUCTS_PAGE_SIZE,
 ): Promise<{ rows: ProductRow[] }> {
   const supabase = createClient();
-  const from = (page - 1) * PRODUCTS_PAGE_SIZE;
-  const to = from + PRODUCTS_PAGE_SIZE - 1;
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
 
   let query = supabase
     .from("products")
-    .select("id, name, unit_price_before_vat, unit_of_measure, is_active, machine_code, units(short_code)")
+    .select(
+      "id, name, unit_price_before_vat, unit_of_measure, is_active, machine_code, units(short_code)",
+    )
     .eq("shop_id", shopId);
 
   const term = search.trim();
@@ -54,13 +62,16 @@ export async function fetchProductsPage(
 
 export async function fetchProductsStats(
   shopId: string,
-  search: string = ""
+  search: string = "",
 ): Promise<{ total: number; activeCount: number }> {
   const supabase = createClient();
   const term = search.trim();
   const pattern = term ? `%${escapeLike(term)}%` : null;
 
-  let totalQuery = supabase.from("products").select("id", { count: "exact", head: true }).eq("shop_id", shopId);
+  let totalQuery = supabase
+    .from("products")
+    .select("id", { count: "exact", head: true })
+    .eq("shop_id", shopId);
   let activeQuery = supabase
     .from("products")
     .select("id", { count: "exact", head: true })
@@ -71,6 +82,9 @@ export async function fetchProductsStats(
     activeQuery = activeQuery.ilike("name", pattern);
   }
 
-  const [{ count: total }, { count: activeCount }] = await Promise.all([totalQuery, activeQuery]);
+  const [{ count: total }, { count: activeCount }] = await Promise.all([
+    totalQuery,
+    activeQuery,
+  ]);
   return { total: total ?? 0, activeCount: activeCount ?? 0 };
 }

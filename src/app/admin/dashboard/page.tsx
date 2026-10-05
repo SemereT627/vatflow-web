@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { formatEthiopianDate } from "@/lib/ethiopian";
+import { formatMoney, formatNumber } from "@/lib/utils";
 import {
   TrendChart,
   ProductBars,
@@ -106,25 +107,25 @@ export default async function AdminDashboardPage({
   const kpis = [
     {
       label: "Gross sales",
-      value: `${totals.gross.toFixed(2)} ETB`,
+      value: `${formatMoney(totals.gross)} ETB`,
       delta: pctDelta(totals.gross, prevTotals.gross),
       spark: daily.map((d) => d.net + d.vat),
     },
     {
       label: "VAT collected",
-      value: `${totals.vat.toFixed(2)} ETB`,
+      value: `${formatMoney(totals.vat)} ETB`,
       delta: pctDelta(totals.vat, prevTotals.vat),
       spark: daily.map((d) => d.vat),
     },
     {
       label: "Receipts issued",
-      value: String(totals.receipts),
+      value: formatNumber(totals.receipts),
       delta: pctDelta(totals.receipts, prevTotals.receipts),
       spark: daily.map((d) => d.receipts),
     },
     {
       label: "Avg. basket",
-      value: `${avgTicket.toFixed(2)} ETB`,
+      value: `${formatMoney(avgTicket)} ETB`,
       delta: pctDelta(avgTicket, prevAvgTicket),
       spark: daily.map((d) => (d.receipts ? (d.net + d.vat) / d.receipts : 0)),
     },
@@ -203,7 +204,7 @@ export default async function AdminDashboardPage({
       </div>
 
       <div className="mb-3 grid gap-3 lg:grid-cols-[1.6fr_1fr]">
-        <section className="rounded-xl border border-line bg-surface p-4 shadow-sm">
+        <section className="flex h-full flex-col rounded-xl border border-line bg-surface p-4 shadow-sm">
           <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
             <div>
               <h2 className="text-sm font-bold">Revenue &amp; VAT collected</h2>
@@ -229,7 +230,9 @@ export default async function AdminDashboardPage({
             </div>
           </div>
           {daily.some((d) => d.net > 0) ? (
-            <TrendChart days={daily} />
+            <div className="min-h-0 flex-1">
+              <TrendChart days={daily} />
+            </div>
           ) : (
             <p className="py-10 text-center text-sm text-ink-soft">
               No sales recorded in this range yet — receipts synced from VatFlow
@@ -333,7 +336,7 @@ export default async function AdminDashboardPage({
                   </td>
                   <td className="px-4 py-2.5">{sale.seller_name}</td>
                   <td className="num px-4 py-2.5 text-right">
-                    {saleGross(sale).toFixed(2)} ETB
+                    {formatMoney(saleGross(sale))} ETB
                   </td>
                   <td className="px-4 py-2.5">
                     <span
@@ -379,7 +382,7 @@ export default async function AdminDashboardPage({
               <div className="min-w-0 flex-1">
                 <div className="text-[13px] font-bold">{s.name}</div>
                 <div className="text-[11.5px] text-ink-soft">
-                  {s.receipts} receipts
+                  {formatNumber(s.receipts)} receipts
                 </div>
                 <div className="mt-1 h-1 overflow-hidden rounded-full bg-surface-2">
                   <div
@@ -389,7 +392,7 @@ export default async function AdminDashboardPage({
                 </div>
               </div>
               <div className="num flex-none text-[13px] font-semibold">
-                {s.value.toFixed(2)} ETB
+                {formatMoney(s.value)} ETB
               </div>
             </div>
           ))}
