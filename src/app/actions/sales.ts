@@ -14,6 +14,9 @@ export async function createSale(input: NewSaleInput) {
   if (input.items.length === 0) {
     throw new Error("Add at least one item.");
   }
+  if (input.items.some((item) => !(item.quantity > 0))) {
+    throw new Error("Each item's quantity must be greater than 0.");
+  }
 
   const supabase = await createClient();
 

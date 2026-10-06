@@ -54,6 +54,14 @@ export async function POST(request: NextRequest) {
       results.push({ clientId: sale.clientId, status: "rejected", reason: "No items on sale." });
       continue;
     }
+    if (sale.items.some((item) => !(item.quantity > 0))) {
+      results.push({
+        clientId: sale.clientId,
+        status: "rejected",
+        reason: "Each item's quantity must be greater than 0.",
+      });
+      continue;
+    }
 
     const { data: inserted, error: insertError } = await supabase
       .from("sales")

@@ -115,7 +115,7 @@ export function SaleForm({
 
   function addLine() {
     const product = products.find((p) => p.id === selectedProductId);
-    const qty = parseFloat(quantity);
+    const qty = Math.round(parseFloat(quantity) * 100) / 100;
     const price = parseFloat(unitPrice);
     if (!product || !qty || qty <= 0 || !description.trim() || isNaN(price) || price < 0) {
       setLineError("Pick an item, and enter a valid name, price, and quantity.");
