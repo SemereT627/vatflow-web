@@ -72,9 +72,23 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // /api/* is excluded — those routes authenticate mobile clients via a
-  // bearer token (see lib/supabase/route.ts), not the cookie session this
-  // middleware checks, so redirecting them to /login would just hand back
-  // HTML where the client expects JSON.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|brand|login|api).*)"],
+  matcher: [
+    {
+      // /api/* is excluded — those routes authenticate mobile clients via a
+      // bearer token (see lib/supabase/route.ts), not the cookie session
+      // this proxy checks, so redirecting them to /login would just hand
+      // back HTML where the client expects JSON.
+      source: "/((?!_next/static|_next/image|favicon.ico|brand|login|api).*)",
+      // Next.js prefetches every <Link> visible in the sidebar in the
+      // background. Those requests carry this header and would otherwise
+      // keep bumping last_activity forever, so a genuinely idle user (who
+      // never clicks anything, just leaves the tab open) would never time
+      // out. Excluding them has to happen here in the matcher — the header
+      // is stripped from `request.headers` before the proxy body runs.
+      missing: [
+        { type: "header", key: "next-router-prefetch" },
+        { type: "header", key: "purpose", value: "prefetch" },
+      ],
+    },
+  ],
 };
