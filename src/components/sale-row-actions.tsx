@@ -9,6 +9,7 @@ import { z } from "zod";
 import { Pencil, RotateCcw, Ban } from "lucide-react";
 import { restoreSale, updateSale, voidSale } from "@/app/actions/sales";
 import { SALES_QUERY_PREFIX } from "@/lib/sales-query";
+import { formatEthiopianDate } from "@/lib/ethiopian";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -28,6 +29,7 @@ type SaleForActions = {
   buyer_tin: string | null;
   mrc_number: string | null;
   vat_receipt_number: string;
+  sale_date: string;
   voided_at: string | null;
 };
 
@@ -72,6 +74,7 @@ export function SaleRowActions({ sale }: { sale: SaleForActions }) {
 }
 
 const editSchema = z.object({
+  sale_date: z.string().min(1, "Sale date is required."),
   buyer_name: z.string().trim().optional(),
   buyer_tin: z.string().trim().optional(),
   mrc_number: z.string().trim().optional(),
@@ -85,6 +88,7 @@ function EditSaleDialog({ sale }: { sale: SaleForActions }) {
   const [serverError, setServerError] = useState<string | null>(null);
 
   const defaultValues: EditValues = {
+    sale_date: sale.sale_date,
     buyer_name: sale.buyer_name ?? "",
     buyer_tin: sale.buyer_tin ?? "",
     mrc_number: sale.mrc_number ?? "",
@@ -95,6 +99,7 @@ function EditSaleDialog({ sale }: { sale: SaleForActions }) {
     setServerError(null);
     try {
       await updateSale(sale.id, {
+        sale_date: values.sale_date,
         buyer_name: values.buyer_name || null,
         buyer_tin: values.buyer_tin || null,
         mrc_number: values.mrc_number || null,
@@ -124,13 +129,30 @@ function EditSaleDialog({ sale }: { sale: SaleForActions }) {
         <DialogHeader>
           <DialogTitle>Edit receipt #{sale.vat_receipt_number}</DialogTitle>
           <DialogDescription>
-            Only buyer details can be corrected here — amounts, VAT category, and the receipt number are
-            locked once recorded. To fix a wrong amount, void this sale and record it again.
+            The sale date and buyer details can be corrected here — amounts, quantity, price, VAT
+            category, and the receipt number are locked once recorded. To fix a wrong amount, void
+            this sale and record it again.
           </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="sale_date"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Sale date</FormLabel>
+                  <FormControl>
+                    <Input type="date" {...field} />
+                  </FormControl>
+                  {field.value && (
+                    <p className="text-xs text-ink-soft">{formatEthiopianDate(field.value)} E.C.</p>
+                  )}
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="buyer_name"

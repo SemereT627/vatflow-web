@@ -63,15 +63,24 @@ export async function createSale(input: NewSaleInput) {
   return sale.id;
 }
 
-/** Only non-financial fields — quantity, price, VAT category, receipt number, and date stay
- * locked once recorded, since they're already on a physical receipt and feed the VAT total. */
+/** Quantity, price, VAT category, and receipt number stay locked once recorded, since
+ * they're already on a physical receipt and feed the VAT total. Buyer details and the
+ * sale date (when it happened, not a VAT amount) can still be corrected. */
 export async function updateSale(
   saleId: string,
-  input: { buyer_name: string | null; buyer_tin: string | null; mrc_number: string | null }
+  input: {
+    buyer_name: string | null;
+    buyer_tin: string | null;
+    mrc_number: string | null;
+    sale_date: string;
+  }
 ) {
   const session = await getCurrentProfile();
   if (!session || session.profile.role !== "admin") {
     throw new Error("Only admins can edit a recorded sale.");
+  }
+  if (!input.sale_date) {
+    throw new Error("Sale date is required.");
   }
 
   const supabase = await createClient();
@@ -81,12 +90,14 @@ export async function updateSale(
       buyer_name: input.buyer_name || null,
       buyer_tin: input.buyer_tin || null,
       mrc_number: input.mrc_number || null,
+      sale_date: input.sale_date,
     })
     .eq("id", saleId)
     .eq("shop_id", session.shop.id);
   if (error) throw new Error(error.message);
 
   revalidatePath("/sales");
+  revalidatePath("/admin/dashboard");
 }
 
 export async function voidSale(saleId: string, reason: string) {
