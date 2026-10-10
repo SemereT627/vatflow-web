@@ -204,7 +204,7 @@ export default async function AdminDashboardPage({
       </div>
 
       <div className="mb-3 grid gap-3 lg:grid-cols-[1.6fr_1fr]">
-        <section className="flex h-full flex-col rounded-xl border border-line bg-surface p-4 shadow-sm">
+        <section className="flex h-full min-w-0 flex-col rounded-xl border border-line bg-surface p-4 shadow-sm">
           <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
             <div>
               <h2 className="text-sm font-bold">Revenue &amp; VAT collected</h2>
@@ -230,7 +230,7 @@ export default async function AdminDashboardPage({
             </div>
           </div>
           {daily.some((d) => d.net > 0) ? (
-            <div className="min-h-0 flex-1">
+            <div className="min-h-0 min-w-0 flex-1">
               <TrendChart days={daily} />
             </div>
           ) : (
@@ -250,7 +250,7 @@ export default async function AdminDashboardPage({
           )}
 
           <h2 className="mb-2 mt-5 text-sm font-bold">VAT category split</h2>
-          <div className="flex h-3.5 overflow-hidden rounded-full border border-line">
+          <div className="flex h-1.75 overflow-hidden rounded-full bg-surface-2">
             <span
               style={{
                 width: `${split.total ? (split.g / split.total) * 100 : 0}%`,

@@ -85,13 +85,12 @@ export function TrendChart({ days }: { days: DayTotal[] }) {
   const step = days.length > 10 ? Math.ceil(days.length / 6) : 1;
 
   return (
-    <div ref={ref} className="h-full min-h-40 w-full">
+    <div ref={ref} className="h-full min-h-40 w-full min-w-0">
       <svg
-        width={W}
-        height={H}
         viewBox={`0 0 ${W} ${H}`}
         role="img"
         aria-label="Net sales and VAT collected by day"
+        className="block h-full w-full"
       >
         {[0, 1, 2, 3].map((g) => {
           const gy = 8 + (innerH / 3) * g;
