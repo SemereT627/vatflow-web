@@ -64,8 +64,8 @@ export function SaleDetailDialog({
         )}
 
         {sale && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+          <div className="min-w-0 space-y-4">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm [&>div]:min-w-0">
               <Field
                 label="Buyer"
                 value={sale.buyer_name ?? "Walk-in customer"}
@@ -86,8 +86,8 @@ export function SaleDetailDialog({
               )}
             </div>
 
-            <div className="overflow-hidden rounded-lg border border-line">
-              <table className="w-full text-[12.5px]">
+            <div className="min-w-0 overflow-x-auto rounded-lg border border-line">
+              <table className="w-full min-w-120 text-[12.5px]">
                 <thead className="border-b border-line bg-surface-2">
                   <tr className="text-left text-[10.5px] font-bold uppercase tracking-wide text-ink-faint">
                     <th className="px-3 py-2">Item</th>
@@ -122,7 +122,7 @@ export function SaleDetailDialog({
               </table>
             </div>
 
-            <div className="flex justify-end gap-6 text-sm">
+            <div className="flex flex-wrap justify-end gap-x-6 gap-y-1 text-sm">
               <span className="text-ink-soft">
                 VAT collected:{" "}
                 <span className="num font-semibold text-foreground">
@@ -149,7 +149,7 @@ function Field({ label, value }: { label: string; value: string }) {
       <p className="text-[10.5px] font-bold uppercase tracking-wide text-ink-faint">
         {label}
       </p>
-      <p className="font-medium">{value}</p>
+      <p className="wrap-break-word font-medium">{value}</p>
     </div>
   );
 }
