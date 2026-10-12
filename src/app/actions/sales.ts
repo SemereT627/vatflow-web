@@ -122,6 +122,7 @@ export async function voidSale(saleId: string, reason: string) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/sales");
+  revalidatePath("/admin/reports/voided");
 }
 
 export async function restoreSale(saleId: string) {
@@ -139,4 +140,5 @@ export async function restoreSale(saleId: string) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/sales");
+  revalidatePath("/admin/reports/voided");
 }

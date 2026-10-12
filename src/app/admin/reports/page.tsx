@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Ban } from "lucide-react";
 import { getCurrentProfile } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { ReportForm } from "@/components/report-form";
@@ -32,6 +34,13 @@ export default async function AdminReportsPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Link
+            href="/admin/reports/voided"
+            className="inline-flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm font-semibold text-ink-soft hover:bg-surface-2 hover:text-foreground"
+          >
+            <Ban className="h-3.5 w-3.5" />
+            Voided sales
+          </Link>
           <ExportTemplateForm columns={columns} />
           <ReportForm />
         </div>

@@ -9,6 +9,7 @@ import { z } from "zod";
 import { Pencil, RotateCcw, Ban } from "lucide-react";
 import { restoreSale, updateSale, voidSale } from "@/app/actions/sales";
 import { SALES_QUERY_PREFIX } from "@/lib/sales-query";
+import { VOIDED_SALES_QUERY_PREFIX } from "@/lib/voided-sales-query";
 import { formatEthiopianDate } from "@/lib/ethiopian";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +46,7 @@ export function SaleRowActions({ sale }: { sale: SaleForActions }) {
     try {
       await restoreSale(sale.id);
       queryClient.invalidateQueries({ queryKey: SALES_QUERY_PREFIX });
+      queryClient.invalidateQueries({ queryKey: VOIDED_SALES_QUERY_PREFIX });
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not restore sale.");
