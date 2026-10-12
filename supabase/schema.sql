@@ -209,7 +209,7 @@ insert into export_templates (shop_id, name, columns) values (
     {"header": "MRC Number", "field": "mrc_number"},
     {"header": "Vat receipt number", "field": "vat_receipt_number"},
     {"header": "Description", "field": "description"},
-    {"header": "Unit of Measure", "field": "unit_of_measure"},
+    {"header": "Unit of Measure", "field": "unit_label"},
     {"header": "Quantity", "field": "quantity"},
     {"header": "Unit Price", "field": "unit_price"},
     {"header": "Total value", "field": "total_value"},
