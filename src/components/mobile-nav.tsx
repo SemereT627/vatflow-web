@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu } from "lucide-react";
 import { UserMenu } from "@/components/user-menu";
+import { KilnLink } from "@/components/kiln-link";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import type { NavGroup } from "@/components/nav-links";
 
@@ -88,6 +89,7 @@ export function MobileNav({
               ))}
             </nav>
 
+            {role === "admin" && <KilnLink />}
             <UserMenu fullName={fullName} role={role} onNavigate={() => setOpen(false)} />
           </div>
         </DialogContent>

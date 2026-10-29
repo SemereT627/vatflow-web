@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { getCurrentProfile } from "@/lib/session";
 import { UserMenu } from "@/components/user-menu";
+import { KilnLink } from "@/components/kiln-link";
 import { NavLinks, type NavGroup } from "@/components/nav-links";
 import { MobileNav } from "@/components/mobile-nav";
 
@@ -91,7 +92,8 @@ export async function Sidebar() {
 
         <NavLinks groups={groups} />
 
-        <div className="mt-auto">
+        <div className="mt-auto space-y-2">
+          {session.profile.role === "admin" && <KilnLink />}
           <UserMenu fullName={session.profile.full_name} role={session.profile.role} />
         </div>
       </aside>
