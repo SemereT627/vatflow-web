@@ -21,11 +21,21 @@ import {
 const RANGE_OPTIONS = [7, 14, 30] as const;
 type RangeDays = (typeof RANGE_OPTIONS)[number];
 
+/** ISO date `days` before today, where "today" is Addis Ababa's (UTC+3,
+ * no DST) — not the server's UTC day, which lags by 3 hours after midnight. */
 function isoDaysAgo(days: number): string {
-  const d = new Date();
+  const d = new Date(Date.now() + 3 * 60 * 60 * 1000);
   d.setUTCDate(d.getUTCDate() - days);
   return d.toISOString().slice(0, 10);
 }
+
+const gregLabel = (iso: string, withYear = true) =>
+  new Date(iso + "T00:00:00Z").toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    ...(withYear ? { year: "numeric" } : {}),
+    timeZone: "UTC",
+  });
 
 async function loadSales(
   shopId: string,
@@ -135,9 +145,10 @@ export default async function AdminDashboardPage({
     <div className="px-6 py-6 md:px-10">
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold">Overview</h1>
+          <h1 className="text-xl font-bold">Dashboard</h1>
           <p className="mt-0.5 text-[13px] text-ink-soft">
-            {session.shop.business_name}
+            Last {rangeDays} days · {gregLabel(start, false)} – {gregLabel(today)} ·{" "}
+            {formatEthiopianDate(start)} – {formatEthiopianDate(today)} E.C.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -173,10 +184,10 @@ export default async function AdminDashboardPage({
               key={k.label}
               className="rounded-xl border border-line bg-surface p-4 shadow-sm"
             >
-              <div className="text-[11px] font-bold uppercase tracking-wide text-ink-soft">
-                {k.label}
+              <div className="text-[13px] font-medium text-ink-soft">{k.label}</div>
+              <div className="mt-1 truncate text-2xl font-semibold tracking-tight tabular-nums">
+                {k.value}
               </div>
-              <div className="num mt-1.5 text-xl font-semibold">{k.value}</div>
               <div
                 className={`mt-1 flex items-center gap-1 text-xs font-bold ${up ? "text-good" : "text-critical"}`}
               >
@@ -207,9 +218,9 @@ export default async function AdminDashboardPage({
         <section className="flex h-full min-w-0 flex-col rounded-xl border border-line bg-surface p-4 shadow-sm">
           <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
             <div>
-              <h2 className="text-sm font-bold">Revenue &amp; VAT collected</h2>
+              <h2 className="text-sm font-bold">Sales &amp; VAT by day</h2>
               <p className="text-[11.5px] text-ink-soft">
-                Net value after VAT vs. output VAT, by sale date
+                Sales before VAT and the VAT collected on them. Hover for a day&apos;s figures.
               </p>
             </div>
             <div className="flex gap-3 text-[11.5px] font-semibold text-ink-soft">
@@ -218,14 +229,14 @@ export default async function AdminDashboardPage({
                   className="h-2 w-2 rounded-sm"
                   style={{ background: "var(--color-s1)" }}
                 />
-                Net sales
+                Sales before VAT
               </span>
               <span className="flex items-center gap-1.5">
                 <span
                   className="h-2 w-2 rounded-sm"
                   style={{ background: "var(--color-s2)" }}
                 />
-                VAT collected
+                VAT
               </span>
             </div>
           </div>
@@ -242,56 +253,48 @@ export default async function AdminDashboardPage({
         </section>
 
         <section className="rounded-xl border border-line bg-surface p-4 shadow-sm">
-          <h2 className="mb-3 text-sm font-bold">Top products</h2>
+          <h2 className="text-sm font-bold">Top products</h2>
+          <p className="mb-3 text-[11.5px] text-ink-soft">By sales before VAT, share of the top five</p>
           {products.length > 0 ? (
             <ProductBars products={products} />
           ) : (
             <p className="text-sm text-ink-soft">No sales recorded yet.</p>
           )}
 
-          <h2 className="mb-2 mt-5 text-sm font-bold">VAT category split</h2>
-          <div className="flex h-1.75 overflow-hidden rounded-full bg-surface-2">
-            <span
-              style={{
-                width: `${split.total ? (split.g / split.total) * 100 : 0}%`,
-                background: "var(--color-s1)",
-              }}
-            />
-            <span
-              style={{
-                width: `${split.total ? (split.s / split.total) * 100 : 0}%`,
-                background: "var(--color-s3)",
-              }}
-            />
+          <h2 className="mt-5 text-sm font-bold">VAT category split</h2>
+          <p className="mb-2 text-[11.5px] text-ink-soft">By value after VAT</p>
+          <div className="flex h-1.75 gap-0.5 overflow-hidden rounded-full bg-surface-2">
+            {split.g.value > 0 && (
+              <span style={{ width: `${(split.g.value / (split.totalValue || 1)) * 100}%`, background: "var(--color-s1)" }} />
+            )}
+            {split.s.value > 0 && (
+              <span style={{ width: `${(split.s.value / (split.totalValue || 1)) * 100}%`, background: "var(--color-s3)" }} />
+            )}
           </div>
           <div className="mt-2.5 space-y-1.5">
-            <SplitRow
-              color="var(--color-s1)"
-              label="G — VAT applies"
-              count={split.g}
-              total={split.total}
-            />
-            <SplitRow
-              color="var(--color-s3)"
-              label="S — VAT exempt/special"
-              count={split.s}
-              total={split.total}
-            />
+            <SplitRow color="var(--color-s1)" label="G — VAT applies" bucket={split.g} totalValue={split.totalValue} />
+            <SplitRow color="var(--color-s3)" label="S — VAT exempt/special" bucket={split.s} totalValue={split.totalValue} />
           </div>
         </section>
       </div>
 
       <section className="mb-3 rounded-xl border border-line bg-surface shadow-sm">
-        <div className="p-4 pb-0">
-          <h2 className="text-sm font-bold">Recent sales</h2>
-          <p className="mb-3 text-[11.5px] text-ink-soft">
-            Receipts recorded in the selected range, newest first
-          </p>
+        <div className="flex items-start justify-between gap-3 p-4 pb-0">
+          <div>
+            <h2 className="text-sm font-bold">Recent sales</h2>
+            <p className="mb-3 text-[11.5px] text-ink-soft">
+              Latest {recentSales.length} receipts in the selected range
+            </p>
+          </div>
+          <Link href="/sales" className="text-xs font-semibold text-brand hover:underline">
+            View all sales
+          </Link>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px] text-[12.5px]">
+          <table className="w-full min-w-[800px] text-[12.5px]">
             <thead>
               <tr className="border-b border-line text-left text-[10.5px] font-bold uppercase tracking-wide text-ink-faint">
+                <th className="px-4 py-2.5">Date</th>
                 <th className="px-4 py-2.5">Receipt</th>
                 <th className="px-4 py-2.5">Buyer</th>
                 <th className="px-4 py-2.5">VAT cat.</th>
@@ -306,6 +309,10 @@ export default async function AdminDashboardPage({
                   key={sale.id}
                   className="border-b border-line last:border-0 hover:bg-surface-2"
                 >
+                  <td className="px-4 py-2.5 whitespace-nowrap">
+                    <div className="font-semibold">{gregLabel(sale.sale_date, false)}</div>
+                    <div className="text-[11px] text-ink-faint">{formatEthiopianDate(sale.sale_date)}</div>
+                  </td>
                   <td className="num px-4 py-2.5">{sale.vat_receipt_number}</td>
                   <td className="px-4 py-2.5">
                     <div className="font-semibold">
@@ -354,7 +361,7 @@ export default async function AdminDashboardPage({
               {recentSales.length === 0 && (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={7}
                     className="px-4 py-8 text-center text-sm text-ink-soft"
                   >
                     No receipts in this range yet.
@@ -413,22 +420,27 @@ export default async function AdminDashboardPage({
 function SplitRow({
   color,
   label,
-  count,
-  total,
+  bucket,
+  totalValue,
 }: {
   color: string;
   label: string;
-  count: number;
-  total: number;
+  bucket: { receipts: number; value: number };
+  totalValue: number;
 }) {
-  const pct = total ? Math.round((count / total) * 100) : 0;
+  const pct = totalValue ? Math.round((bucket.value / totalValue) * 100) : 0;
   return (
-    <div className="flex items-center justify-between text-[12.5px]">
-      <span className="flex items-center gap-1.5 font-semibold text-ink-soft">
-        <span className="h-2 w-2 rounded-sm" style={{ background: color }} />
-        {label}
+    <div className="flex items-center justify-between gap-3 text-[12.5px]">
+      <span className="flex min-w-0 items-center gap-1.5 font-semibold text-ink-soft">
+        <span className="h-2 w-2 flex-none rounded-sm" style={{ background: color }} />
+        <span className="truncate">{label}</span>
       </span>
-      <span className="num font-bold">{pct}%</span>
+      <span className="flex-none tabular-nums">
+        <span className="font-semibold">{formatMoney(bucket.value)} ETB</span>
+        <span className="ml-1.5 text-ink-faint">
+          {pct}% · {formatNumber(bucket.receipts)} receipts
+        </span>
+      </span>
     </div>
   );
 }

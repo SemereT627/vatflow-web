@@ -76,10 +76,17 @@ export function topProducts(sales: DashboardSale[], limit = 5): ProductTotal[] {
     .slice(0, limit);
 }
 
+/** Receipts and value (after VAT) per VAT category. */
 export function vatCategorySplit(sales: DashboardSale[]) {
-  const g = sales.filter((s) => s.vat_category === "G").length;
-  const s = sales.filter((s) => s.vat_category === "S").length;
-  return { g, s, total: g + s };
+  const out = { g: { receipts: 0, value: 0 }, s: { receipts: 0, value: 0 }, totalValue: 0 };
+  for (const sale of sales) {
+    const bucket = sale.vat_category === "G" ? out.g : out.s;
+    const gross = saleTotals(sale).gross;
+    bucket.receipts += 1;
+    bucket.value += gross;
+    out.totalValue += gross;
+  }
+  return out;
 }
 
 export function sellerActivity(sales: DashboardSale[]): SellerTotal[] {

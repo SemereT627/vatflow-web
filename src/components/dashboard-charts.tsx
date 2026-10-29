@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { DayTotal, ProductTotal } from "@/lib/dashboard";
+import { formatEthiopianDate } from "@/lib/ethiopian";
+import { formatMoney } from "@/lib/utils";
 
 /**
  * Measures the wrapper's real pixel size so the SVG viewBox can match it
@@ -67,11 +69,24 @@ export function Sparkline({
   );
 }
 
+const compact = (v: number) =>
+  v >= 1_000_000 ? `${(v / 1_000_000).toFixed(1)}M` : v >= 1000 ? `${Math.round(v / 1000)}k` : `${Math.round(v)}`;
+
+const shortDate = (iso: string) =>
+  new Date(iso + "T00:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+
+/**
+ * Sales before VAT (area + line) and the VAT on them (dotted line) per day.
+ * Hovering anywhere over the plot snaps a crosshair to the nearest day and
+ * shows its exact figures.
+ */
 export function TrendChart({ days }: { days: DayTotal[] }) {
   const { ref, width: W, height: H } = useElementSize(640, 160);
-  const padL = 36;
-  const padB = 18;
-  const innerW = W - padL - 8;
+  const [hover, setHover] = useState<number | null>(null);
+  const padL = 40;
+  const padR = 12;
+  const padB = 20;
+  const innerW = W - padL - padR;
   const innerH = H - padB - 8;
   const max = Math.max(...days.map((d) => d.net), 1) * 1.15;
 
@@ -83,13 +98,21 @@ export function TrendChart({ days }: { days: DayTotal[] }) {
   const areaPath = `M${padL},${8 + innerH} L${netPts} L${xAt(days.length - 1)},${8 + innerH} Z`;
 
   const step = days.length > 10 ? Math.ceil(days.length / 6) : 1;
+  const active = hover !== null ? days[hover] : null;
+
+  function onMove(e: React.PointerEvent<SVGRectElement>) {
+    const box = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - box.left) / box.width) * innerW;
+    const i = Math.round((x / innerW) * (days.length - 1));
+    setHover(Math.max(0, Math.min(days.length - 1, i)));
+  }
 
   return (
-    <div ref={ref} className="h-full min-h-40 w-full min-w-0">
+    <div ref={ref} className="relative h-full min-h-40 w-full min-w-0">
       <svg
         viewBox={`0 0 ${W} ${H}`}
         role="img"
-        aria-label="Net sales and VAT collected by day"
+        aria-label="Sales before VAT and VAT collected by day"
         className="block h-full w-full"
       >
         {[0, 1, 2, 3].map((g) => {
@@ -97,21 +120,9 @@ export function TrendChart({ days }: { days: DayTotal[] }) {
           const val = max - (max / 3) * g;
           return (
             <g key={g}>
-              <line
-                x1={padL}
-                x2={W - 8}
-                y1={gy}
-                y2={gy}
-                stroke="var(--color-line)"
-              />
-              <text
-                x={0}
-                y={gy + 3}
-                fontSize={9}
-                fill="var(--color-ink-faint)"
-                className="font-data"
-              >
-                {Math.round(val / 1000)}k
+              <line x1={padL} x2={W - padR} y1={gy} y2={gy} stroke="var(--color-line)" />
+              <text x={padL - 6} y={gy + 3} fontSize={10} fill="var(--color-ink-faint)" textAnchor="end">
+                {compact(val)}
               </text>
             </g>
           );
@@ -133,69 +144,96 @@ export function TrendChart({ days }: { days: DayTotal[] }) {
           strokeLinecap="round"
           strokeLinejoin="round"
         />
-        <circle
-          cx={xAt(days.length - 1)}
-          cy={yAt(days[days.length - 1]?.net ?? 0)}
-          r={3.5}
-          fill="var(--color-s1)"
-          stroke="var(--color-surface)"
-          strokeWidth={2}
-        />
-        <circle
-          cx={xAt(days.length - 1)}
-          cy={yAt(days[days.length - 1]?.vat ?? 0)}
-          r={3.5}
-          fill="var(--color-s2)"
-          stroke="var(--color-surface)"
-          strokeWidth={2}
-        />
         {days.map((d, i) =>
           i % step === 0 || i === days.length - 1 ? (
             <text
               key={d.date}
               x={xAt(i)}
               y={H - 4}
-              fontSize={9}
+              fontSize={10}
               fill="var(--color-ink-faint)"
-              textAnchor="middle"
-              className="font-data"
+              // First/last labels anchor inward so they never clip at the edges.
+              textAnchor={i === 0 ? "start" : i === days.length - 1 ? "end" : "middle"}
             >
-              {d.date.slice(5)}
+              {shortDate(d.date)}
             </text>
           ) : null,
         )}
+        {active && hover !== null && (
+          <g pointerEvents="none">
+            <line x1={xAt(hover)} x2={xAt(hover)} y1={8} y2={8 + innerH} stroke="var(--color-ink-faint)" strokeDasharray="3 3" />
+            <circle cx={xAt(hover)} cy={yAt(active.net)} r={4} fill="var(--color-s1)" stroke="var(--color-surface)" strokeWidth={2} />
+            <circle cx={xAt(hover)} cy={yAt(active.vat)} r={4} fill="var(--color-s2)" stroke="var(--color-surface)" strokeWidth={2} />
+          </g>
+        )}
+        {/* Hit area bigger than the marks: the whole plot. */}
+        <rect
+          x={padL}
+          y={0}
+          width={innerW}
+          height={8 + innerH}
+          fill="transparent"
+          onPointerMove={onMove}
+          onPointerLeave={() => setHover(null)}
+        />
       </svg>
+
+      {active && hover !== null && (
+        <div
+          className="pointer-events-none absolute top-1 z-10 w-48 rounded-lg border border-line bg-surface-2 p-2.5 text-xs shadow-lg"
+          style={{
+            left: `${(xAt(hover) / W) * 100}%`,
+            transform: xAt(hover) > W / 2 ? "translateX(calc(-100% - 10px))" : "translateX(10px)",
+          }}
+        >
+          <div className="font-semibold">{shortDate(active.date)}</div>
+          <div className="text-ink-faint">{formatEthiopianDate(active.date)} E.C.</div>
+          <div className="mt-1.5 space-y-0.5 tabular-nums">
+            <Row color="var(--color-s1)" label="Sales before VAT" value={`${formatMoney(active.net)} ETB`} />
+            <Row color="var(--color-s2)" label="VAT" value={`${formatMoney(active.vat)} ETB`} />
+            <Row label="Receipts" value={String(active.receipts)} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-const BAR_COLORS = [
-  "var(--color-s1)",
-  "var(--color-s2)",
-  "var(--color-s3)",
-  "var(--color-s4)",
-  "var(--color-s1)",
-];
+function Row({ color, label, value }: { color?: string; label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="flex items-center gap-1.5 text-ink-soft">
+        {color && <span className="h-2 w-2 rounded-sm" style={{ background: color }} />}
+        {label}
+      </span>
+      <span className="font-semibold">{value}</span>
+    </div>
+  );
+}
 
+/** Ranked products by sales before VAT. One colour — rank isn't an identity. */
 export function ProductBars({ products }: { products: ProductTotal[] }) {
   const max = Math.max(...products.map((p) => p.value), 1);
+  const total = products.reduce((sum, p) => sum + p.value, 0) || 1;
 
   return (
-    <div role="img" aria-label="Top products by net revenue" className="space-y-3">
-      {products.map((p, i) => (
-        <div key={p.name}>
-          <div className="text-[13px] font-semibold">{p.name}</div>
-          <div className="mt-1.5 h-1.75 overflow-hidden rounded-full bg-surface-2">
-            <div
-              className="h-full rounded-full"
-              style={{
-                width: `${(p.value / max) * 100}%`,
-                background: BAR_COLORS[i % BAR_COLORS.length],
-              }}
-            />
+    <ul className="space-y-3">
+      {products.map((p) => (
+        <li key={p.name}>
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="min-w-0 truncate text-[13px] font-semibold" title={p.name}>
+              {p.name}
+            </span>
+            <span className="flex-none text-[12.5px] tabular-nums">
+              <span className="font-semibold">{formatMoney(p.value)} ETB</span>
+              <span className="ml-1.5 text-ink-faint">{Math.round((p.value / total) * 100)}%</span>
+            </span>
           </div>
-        </div>
+          <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-2" aria-hidden="true">
+            <div className="h-full rounded-full bg-[var(--color-s1)]" style={{ width: `${(p.value / max) * 100}%` }} />
+          </div>
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }
