@@ -1,23 +1,24 @@
 import type { Metadata } from "next";
-import { Sora, Manrope, JetBrains_Mono } from "next/font/google";
+import { Inter, Geist_Mono, Noto_Sans_Ethiopic } from "next/font/google";
 import "./globals.css";
 import { QueryProvider } from "@/components/query-provider";
 
-const sora = Sora({
-  variable: "--font-sora",
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
-});
-
-const manrope = Manrope({
-  variable: "--font-manrope",
+// Same type system as Kiln. Generic variable names (--font-body / --font-code)
+// so swapping a family only touches this file, never globals.css.
+const inter = Inter({
+  variable: "--font-body",
   subsets: ["latin"],
 });
 
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-jetbrains-mono",
+const geistMono = Geist_Mono({
+  variable: "--font-code",
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
+});
+
+// Inter has no Ethiopic glyphs — give Amharic text a matching fallback.
+const notoEthiopic = Noto_Sans_Ethiopic({
+  variable: "--font-ethiopic",
+  subsets: ["ethiopic"],
 });
 
 export const metadata: Metadata = {
@@ -44,7 +45,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${sora.variable} ${manrope.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${geistMono.variable} ${notoEthiopic.variable} h-full antialiased`}
     >
       <body className="h-full font-sans text-foreground">
         <QueryProvider>{children}</QueryProvider>

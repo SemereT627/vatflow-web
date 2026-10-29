@@ -48,9 +48,9 @@
   --color-warn-bg: var(--warn-bg);
   --color-critical: var(--critical);
   --color-critical-bg: var(--critical-bg);
-  --font-sans: var(--font-manrope);
-  --font-heading: var(--font-sora);
-  --font-data: var(--font-jetbrains-mono);
+  --font-sans: var(--font-body), var(--font-ethiopic), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-body), var(--font-ethiopic), ui-sans-serif, system-ui, sans-serif;
+  --font-data: var(--font-code), ui-monospace, monospace;
 }
 
 body {
