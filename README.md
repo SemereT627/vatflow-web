@@ -20,7 +20,11 @@ sellers record sales offline in the field and sync them here.
   of measure.
 - **Sellers** (admin) — manage seller accounts for the shop.
 - **Reports** (admin) — generate the Ministry's monthly VAT export template.
-- **Auth** — Supabase-backed sessions, auto sign-out after 2 hours of inactivity.
+- **Auth** — Supabase-backed sessions, auto sign-out after 2 hours of inactivity, and
+  required two-step sign-in (authenticator app / TOTP) on the web: `/mfa` enrols on first
+  use and verifies after. Admins reset a seller's authenticator from the Sellers page; an
+  admin's own reset is `node --env-file=.env.local scripts/reset-mfa.mjs <email>`. Run
+  `supabase/migrations/0001-mfa-admin-writes.sql` so admin writes need it in the DB too.
 - **Mobile sync** — `/api/products` and `/api/sales/sync` authenticate the mobile app via
   a bearer token and keep both clients' VAT math and RLS scoping in one place.
 

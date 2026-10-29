@@ -8,6 +8,12 @@ export async function getCurrentProfile(): Promise<{ profile: Profile; shop: Sho
   } = await supabase.auth.getUser();
   if (!user) return null;
 
+  // Two-step sign-in: web sessions must have passed the authenticator-code
+  // step (aal2). Every server action and page authorises through this, so a
+  // password alone gets nothing. Reads the session JWT locally.
+  const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (aal?.currentLevel !== "aal2") return null;
+
   const { data: profile } = await supabase
     .from("profiles")
     .select("*")

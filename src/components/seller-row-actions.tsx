@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { Trash2 } from "lucide-react";
-import { deleteSeller, setSellerBanned } from "@/app/actions/sellers";
+import { KeyRound, Trash2 } from "lucide-react";
+import { deleteSeller, resetSellerMfa, setSellerBanned } from "@/app/actions/sellers";
 import { SELLERS_QUERY_PREFIX } from "@/lib/sellers-query";
 import { Button } from "@/components/ui/button";
 
@@ -38,6 +38,19 @@ export function SellerRowActions({
     }
   }
 
+  async function handleResetMfa() {
+    if (!confirm(`Reset two-step sign-in for ${fullName}? They'll set up a new authenticator next time they sign in on the web.`)) return;
+    setPending(true);
+    setError(null);
+    try {
+      await resetSellerMfa(sellerId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not reset two-step sign-in.");
+    } finally {
+      setPending(false);
+    }
+  }
+
   async function handleDelete() {
     if (!confirm(`Remove ${fullName}? This can't be undone.`)) return;
     setPending(true);
@@ -58,6 +71,17 @@ export function SellerRowActions({
       <div className="flex justify-end gap-1">
         <Button type="button" variant="outline" size="sm" disabled={pending} onClick={toggleBanned}>
           {isBanned ? "Reactivate" : "Deactivate"}
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          disabled={pending}
+          title="Reset two-step sign-in"
+          aria-label={`Reset two-step sign-in for ${fullName}`}
+          onClick={handleResetMfa}
+        >
+          <KeyRound className="h-3.5 w-3.5" />
         </Button>
         <Button
           type="button"

@@ -60,13 +60,22 @@ export async function proxy(request: NextRequest) {
     return redirectToLogin(request, response);
   }
 
-  // Already signed in — the login screen has nothing to offer.
-  if (user && onLogin) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/";
-    const redirect = NextResponse.redirect(url);
-    response.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie));
-    return redirect;
+  // Two-step sign-in: signed-in sessions below aal2 go to /mfa (enrol on
+  // first use, verify afterwards) until they enter an authenticator code.
+  // Verified sessions have nothing left to do on /login or /mfa.
+  if (user) {
+    const onMfa = request.nextUrl.pathname.startsWith("/mfa");
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    const verified = aal?.currentLevel === "aal2";
+    const target = !verified && !onMfa ? "/mfa" : verified && (onMfa || onLogin) ? "/" : null;
+    if (target) {
+      const url = request.nextUrl.clone();
+      url.pathname = target;
+      url.search = "";
+      const redirect = NextResponse.redirect(url);
+      response.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie));
+      return redirect;
+    }
   }
 
   if (user) {

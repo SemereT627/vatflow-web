@@ -102,3 +102,28 @@ export async function deleteSeller(sellerId: string) {
 
   revalidatePath("/admin/sellers");
 }
+
+/**
+ * Removes a seller's authenticator (e.g. lost phone). They set up a new one
+ * the next time they sign in on the web. Admins can't reset their own here —
+ * that's scripts/reset-mfa.mjs.
+ */
+export async function resetSellerMfa(sellerId: string) {
+  const session = await getCurrentProfile();
+  if (!session || session.profile.role !== "admin") {
+    throw new Error("Only admins can manage sellers.");
+  }
+
+  const admin = createAdminClient();
+  await assertOwnShopSeller(admin, sellerId, session.shop.id);
+
+  const { data, error } = await admin.auth.admin.mfa.listFactors({ userId: sellerId });
+  if (error) throw new Error(error.message);
+  for (const factor of data.factors) {
+    const { error: deleteError } = await admin.auth.admin.mfa.deleteFactor({
+      id: factor.id,
+      userId: sellerId,
+    });
+    if (deleteError) throw new Error(deleteError.message);
+  }
+}
