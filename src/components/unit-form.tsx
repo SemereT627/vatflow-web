@@ -11,6 +11,7 @@ import { createUnit, deleteUnit, setUnitActive, updateUnit } from "@/app/actions
 import { PRODUCTS_QUERY_PREFIX } from "@/lib/products-query";
 import type { Unit } from "@/lib/types";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -148,6 +149,7 @@ function ViewRow({
   const router = useRouter();
   const queryClient = useQueryClient();
   const [pending, setPending] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const isCustom = !!unit.shop_id;
 
   async function toggleActive() {
@@ -165,7 +167,6 @@ function ViewRow({
   }
 
   async function handleDelete() {
-    if (!confirm(`Delete "${unit.label}"? This can't be undone.`)) return;
     setPending(true);
     onError(null);
     try {
@@ -176,6 +177,7 @@ function ViewRow({
       onError(err instanceof Error ? err.message : "Could not delete unit.");
     } finally {
       setPending(false);
+      setConfirmOpen(false);
     }
   }
 
@@ -205,11 +207,29 @@ function ViewRow({
             <Button type="button" variant="ghost" size="icon" disabled={pending} onClick={onEdit}>
               <Pencil className="h-3.5 w-3.5" />
             </Button>
-            <Button type="button" variant="ghost" size="icon" disabled={pending} onClick={handleDelete}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              disabled={pending}
+              aria-label={`Delete ${unit.label}`}
+              onClick={() => setConfirmOpen(true)}
+            >
               <Trash2 className="h-3.5 w-3.5 text-critical" />
             </Button>
           </div>
         )}
+        <ConfirmDialog
+          open={confirmOpen}
+          onOpenChange={setConfirmOpen}
+          title={`Delete "${unit.label}"?`}
+          description="This can't be undone. If a product or sale uses this unit, deactivate it instead."
+          confirmLabel="Delete"
+          pendingLabel="Deleting…"
+          pending={pending}
+          destructive
+          onConfirm={handleDelete}
+        />
       </TableCell>
     </TableRow>
   );

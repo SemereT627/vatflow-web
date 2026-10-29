@@ -7,6 +7,7 @@ import { KeyRound, Trash2 } from "lucide-react";
 import { deleteSeller, resetSellerMfa, setSellerBanned } from "@/app/actions/sellers";
 import { SELLERS_QUERY_PREFIX } from "@/lib/sellers-query";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 
 export function SellerRowActions({
   sellerId,
@@ -23,6 +24,7 @@ export function SellerRowActions({
   const queryClient = useQueryClient();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState<"reset" | "delete" | null>(null);
 
   async function toggleBanned() {
     setPending(true);
@@ -35,11 +37,11 @@ export function SellerRowActions({
       setError(err instanceof Error ? err.message : "Could not update seller.");
     } finally {
       setPending(false);
+      setConfirming(null);
     }
   }
 
   async function handleResetMfa() {
-    if (!confirm(`Reset two-step sign-in for ${fullName}? They'll set up a new authenticator next time they sign in on the web.`)) return;
     setPending(true);
     setError(null);
     try {
@@ -48,11 +50,11 @@ export function SellerRowActions({
       setError(err instanceof Error ? err.message : "Could not reset two-step sign-in.");
     } finally {
       setPending(false);
+      setConfirming(null);
     }
   }
 
   async function handleDelete() {
-    if (!confirm(`Remove ${fullName}? This can't be undone.`)) return;
     setPending(true);
     setError(null);
     try {
@@ -63,6 +65,7 @@ export function SellerRowActions({
       setError(err instanceof Error ? err.message : "Could not remove seller.");
     } finally {
       setPending(false);
+      setConfirming(null);
     }
   }
 
@@ -79,7 +82,7 @@ export function SellerRowActions({
           disabled={pending}
           title="Reset two-step sign-in"
           aria-label={`Reset two-step sign-in for ${fullName}`}
-          onClick={handleResetMfa}
+          onClick={() => setConfirming("reset")}
         >
           <KeyRound className="h-3.5 w-3.5" />
         </Button>
@@ -89,12 +92,34 @@ export function SellerRowActions({
           size="icon"
           disabled={pending || hasSales}
           title={hasSales ? "Has recorded sales — deactivate instead" : "Remove seller"}
-          onClick={handleDelete}
+          onClick={() => setConfirming("delete")}
         >
           <Trash2 className="h-3.5 w-3.5 text-critical" />
         </Button>
       </div>
       {error && <p className="text-xs font-medium text-critical">{error}</p>}
+
+      <ConfirmDialog
+        open={confirming === "reset"}
+        onOpenChange={(open) => !open && setConfirming(null)}
+        title={`Reset two-step sign-in for ${fullName}?`}
+        description="Their authenticator is removed. They'll set up a new one the next time they sign in on the web."
+        confirmLabel="Reset"
+        pendingLabel="Resetting…"
+        pending={pending}
+        onConfirm={handleResetMfa}
+      />
+      <ConfirmDialog
+        open={confirming === "delete"}
+        onOpenChange={(open) => !open && setConfirming(null)}
+        title={`Remove ${fullName}?`}
+        description="Their account is deleted and they lose access immediately. This can't be undone."
+        confirmLabel="Remove"
+        pendingLabel="Removing…"
+        pending={pending}
+        destructive
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }
