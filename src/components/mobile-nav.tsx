@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu } from "lucide-react";
-import { SignOutButton } from "@/components/sign-out-button";
+import { UserMenu } from "@/components/user-menu";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import type { NavGroup } from "@/components/nav-links";
 
@@ -20,12 +20,6 @@ export function MobileNav({
 }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
-  const initials = fullName
-    .split(" ")
-    .map((p) => p[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
 
   return (
     <div className="flex items-center justify-between border-b border-line bg-surface px-4 py-3 md:hidden">
@@ -94,16 +88,7 @@ export function MobileNav({
               ))}
             </nav>
 
-            <div className="flex items-center gap-2.5 rounded-xl border border-line bg-background p-3">
-              <div className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-surface-2 font-heading text-xs font-bold">
-                {initials}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-xs font-bold">{fullName}</div>
-                <div className="text-[11px] capitalize text-ink-soft">{role}</div>
-              </div>
-              <SignOutButton />
-            </div>
+            <UserMenu fullName={fullName} role={role} onNavigate={() => setOpen(false)} />
           </div>
         </DialogContent>
       </Dialog>

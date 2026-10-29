@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { getCurrentProfile } from "@/lib/session";
-import { SignOutButton } from "@/components/sign-out-button";
+import { UserMenu } from "@/components/user-menu";
 import { NavLinks, type NavGroup } from "@/components/nav-links";
 import { MobileNav } from "@/components/mobile-nav";
 
@@ -68,12 +68,6 @@ export async function Sidebar() {
         ]
       : [{ label: null, items: [{ href: "/sales", label: "Sales" }] }];
 
-  const initials = session.profile.full_name
-    .split(" ")
-    .map((p) => p[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
 
   const groups: NavGroup[] = groupDefs.map((g) => ({
     label: g.label,
@@ -97,15 +91,8 @@ export async function Sidebar() {
 
         <NavLinks groups={groups} />
 
-        <div className="mt-auto flex items-center gap-2.5 rounded-xl border border-line bg-background p-3">
-          <div className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-surface-2 font-heading text-xs font-bold">
-            {initials}
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-xs font-bold">{session.profile.full_name}</div>
-            <div className="text-[11px] capitalize text-ink-soft">{session.profile.role}</div>
-          </div>
-          <SignOutButton />
+        <div className="mt-auto">
+          <UserMenu fullName={session.profile.full_name} role={session.profile.role} />
         </div>
       </aside>
     </>
