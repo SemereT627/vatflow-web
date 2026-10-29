@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { Sora, Manrope, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
-import { Sidebar } from "@/components/sidebar";
-import { Topbar } from "@/components/topbar";
 import { QueryProvider } from "@/components/query-provider";
 
 const sora = Sora({
@@ -48,14 +46,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${sora.variable} ${manrope.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
-      <body className="flex h-full flex-col font-sans text-foreground md:flex-row">
-        <QueryProvider>
-          <Sidebar />
-          <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">
-            <Topbar />
-            {children}
-          </div>
-        </QueryProvider>
+      <body className="h-full font-sans text-foreground">
+        <QueryProvider>{children}</QueryProvider>
       </body>
     </html>
   );

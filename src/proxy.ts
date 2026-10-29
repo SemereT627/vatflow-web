@@ -54,8 +54,19 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user && !request.nextUrl.pathname.startsWith("/login")) {
+  const onLogin = request.nextUrl.pathname.startsWith("/login");
+
+  if (!user && !onLogin) {
     return redirectToLogin(request, response);
+  }
+
+  // Already signed in — the login screen has nothing to offer.
+  if (user && onLogin) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/";
+    const redirect = NextResponse.redirect(url);
+    response.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie));
+    return redirect;
   }
 
   if (user) {
@@ -78,7 +89,7 @@ export const config = {
       // bearer token (see lib/supabase/route.ts), not the cookie session
       // this proxy checks, so redirecting them to /login would just hand
       // back HTML where the client expects JSON.
-      source: "/((?!_next/static|_next/image|favicon.ico|brand|login|api).*)",
+      source: "/((?!_next/static|_next/image|favicon.ico|brand|api).*)",
       // Next.js prefetches every <Link> visible in the sidebar in the
       // background. Those requests carry this header and would otherwise
       // keep bumping last_activity forever, so a genuinely idle user (who
