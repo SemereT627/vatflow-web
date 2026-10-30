@@ -1,5 +1,6 @@
 import { Sidebar } from "@/components/sidebar";
 import { Topbar } from "@/components/topbar";
+import { SessionTimeout } from "@/components/session-timeout";
 
 // The signed-in shell lives here, not in the root layout, so /login never
 // renders it — a root-layout shell persists across client navigations and
@@ -12,6 +13,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
         <Topbar />
         {children}
       </div>
+      <SessionTimeout />
     </div>
   );
 }

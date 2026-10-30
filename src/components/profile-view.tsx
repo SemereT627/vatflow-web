@@ -21,8 +21,8 @@ import {
 import { ConfirmDialog } from "@/components/confirm-dialog";
 
 const MIN_PASSWORD = 8;
-// Mirrors INACTIVITY_LIMIT_MS in src/proxy.ts.
-const INACTIVITY_HOURS = 2;
+// Mirrors INACTIVITY_LIMIT_MS in src/proxy.ts and SessionTimeout.
+const INACTIVITY_MINUTES = 30;
 
 function formatDate(iso: string) {
   const greg = new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -330,7 +330,7 @@ export function ProfileView({
               <div className="mt-1.5 space-y-0.5 text-sm text-ink-soft">
                 {lastSignInAt && <div>Signed in {formatDateTime(lastSignInAt)}</div>}
                 <div>Verified with your authenticator</div>
-                <div>Signs out automatically after {INACTIVITY_HOURS} hours of inactivity</div>
+                <div>Signs out automatically after {INACTIVITY_MINUTES} minutes of inactivity</div>
               </div>
             </div>
           </div>

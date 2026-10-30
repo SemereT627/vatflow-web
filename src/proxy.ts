@@ -6,7 +6,7 @@ import { NextResponse, type NextRequest } from "next/server";
 // expiry never actually signs anyone out. This cookie tracks the last time
 // we saw a request from this session; once it's stale we force a sign-out
 // instead of silently refreshing.
-const INACTIVITY_LIMIT_MS = 2 * 60 * 60 * 1000; // 2 hours
+const INACTIVITY_LIMIT_MS = 30 * 60 * 1000; // 30 minutes — matches SessionTimeout
 const LAST_ACTIVITY_COOKIE = "last_activity";
 
 function redirectToLogin(request: NextRequest, from: NextResponse) {
