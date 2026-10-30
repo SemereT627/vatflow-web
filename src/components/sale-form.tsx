@@ -11,7 +11,7 @@ import { createSale } from "@/app/actions/sales";
 import { SALES_QUERY_PREFIX } from "@/lib/sales-query";
 import { calcLine } from "@/lib/vat";
 import { formatEthiopianDate } from "@/lib/ethiopian";
-import { formatMoney } from "@/lib/utils";
+import { addisTodayIso, formatMoney } from "@/lib/utils";
 import type { NewSaleItemInput } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,10 +37,6 @@ export type SaleableProduct = {
 };
 
 type Line = NewSaleItemInput & { key: string; unit_label: string };
-
-function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
-}
 
 const schema = z.object({
   receiptNumber: z.string().trim().min(1, "VAT receipt number is required."),
@@ -75,7 +71,7 @@ export function SaleForm({
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { receiptNumber: "", saleDate: todayIso(), buyerName: "", buyerTin: "", mrcNumber: "" },
+    defaultValues: { receiptNumber: "", saleDate: addisTodayIso(), buyerName: "", buyerTin: "", mrcNumber: "" },
   });
 
   const totals = useMemo(() => {
@@ -93,7 +89,7 @@ export function SaleForm({
   }, [lines, vatRate]);
 
   function resetAll() {
-    form.reset({ receiptNumber: "", saleDate: todayIso(), buyerName: "", buyerTin: "", mrcNumber: "" });
+    form.reset({ receiptNumber: "", saleDate: addisTodayIso(), buyerName: "", buyerTin: "", mrcNumber: "" });
     setLines([]);
     setSelectedProductId("");
     setQuantity("1");

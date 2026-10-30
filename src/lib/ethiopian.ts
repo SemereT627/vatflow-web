@@ -4,6 +4,10 @@ export type EthiopianDate = { year: number; month: number; day: number };
 
 /** Convert a Gregorian JS Date (or ISO date string) to Ethiopian calendar. */
 export function gregorianToEthiopian(date: Date | string): EthiopianDate {
+  // A bare "YYYY-MM-DD" is a calendar day, not an instant: new Date() would read it
+  // as UTC midnight and shift it back a day in any timezone west of UTC.
+  const dateOnly = typeof date === "string" && /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  if (dateOnly) return toEC(Number(dateOnly[1]), Number(dateOnly[2]), Number(dateOnly[3]));
   const d = typeof date === "string" ? new Date(date) : date;
   return toEC(d.getFullYear(), d.getMonth() + 1, d.getDate());
 }
