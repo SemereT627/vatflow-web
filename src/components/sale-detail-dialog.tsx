@@ -1,10 +1,14 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
+import { approveSale, rejectSale } from "@/app/actions/sales";
+import { Button } from "@/components/ui/button";
 import { formatEthiopianDate } from "@/lib/ethiopian";
 import { formatMoney } from "@/lib/utils";
-import { fetchSaleDetail, saleDetailKey } from "@/lib/sales-query";
+import { SALES_QUERY_PREFIX, fetchSaleDetail, saleDetailKey } from "@/lib/sales-query";
 import {
   Dialog,
   DialogContent,
@@ -14,10 +18,12 @@ import {
 } from "@/components/ui/dialog";
 
 export function SaleDetailDialog({
+  isAdmin,
   saleId,
   open,
   onOpenChange,
 }: {
+  isAdmin: boolean;
   saleId: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -45,6 +51,8 @@ export function SaleDetailDialog({
             <DialogDescription>
               {formatEthiopianDate(sale.sale_date)} ·{" "}
               {sale.client_id ? "Mobile" : "Web"}
+              {sale.review_status === "pending" && " · Pending review"}
+              {sale.review_status === "rejected" && " · Rejected"}
               {sale.voided_at && " · Voided"}
             </DialogDescription>
           )}
@@ -65,6 +73,12 @@ export function SaleDetailDialog({
 
         {sale && (
           <div className="min-w-0 space-y-4">
+            {sale.review_status === "rejected" && sale.review_note && (
+              <div className="rounded-lg border border-critical/30 bg-critical-bg px-3 py-2.5 text-sm">
+                <span className="font-semibold text-critical">Sent back to the seller: </span>
+                {sale.review_note}
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm [&>div]:min-w-0">
               <Field
                 label="Buyer"
@@ -136,6 +150,10 @@ export function SaleDetailDialog({
                 </span>
               </span>
             </div>
+
+            {isAdmin && sale.review_status === "pending" && !sale.voided_at && (
+              <ReviewPanel saleId={sale.id} onDone={() => onOpenChange(false)} />
+            )}
           </div>
         )}
       </DialogContent>
@@ -150,6 +168,88 @@ function Field({ label, value }: { label: string; value: string }) {
         {label}
       </p>
       <p className="wrap-break-word font-medium">{value}</p>
+    </div>
+  );
+}
+
+/**
+ * Approve a seller's mobile receipt, or send it back with a note the seller
+ * sees in the app. The admin reviews the lines above before deciding.
+ */
+function ReviewPanel({ saleId, onDone }: { saleId: string; onDone: () => void }) {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const [rejecting, setRejecting] = useState(false);
+  const [note, setNote] = useState("");
+  const [pending, setPending] = useState<"approve" | "reject" | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function run(kind: "approve" | "reject") {
+    setPending(kind);
+    setError(null);
+    try {
+      if (kind === "approve") await approveSale(saleId);
+      else await rejectSale(saleId, note);
+      queryClient.invalidateQueries({ queryKey: SALES_QUERY_PREFIX });
+      router.refresh();
+      onDone();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save the review.");
+    } finally {
+      setPending(null);
+    }
+  }
+
+  return (
+    <div className="space-y-3 rounded-lg border border-line bg-background p-3">
+      <p className="text-sm text-ink-soft">
+        Recorded on VatFlow Mobile. Check the buyer and lines match the issued receipt.
+      </p>
+      {rejecting && (
+        <div className="space-y-1.5">
+          <label htmlFor="review-note" className="text-xs font-semibold">
+            What should the seller fix?
+          </label>
+          <textarea
+            id="review-note"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            rows={3}
+            autoFocus
+            placeholder="e.g. Quantity on line 2 should be 12.5 m², not 125"
+            className="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm outline-none focus-visible:border-brand"
+          />
+        </div>
+      )}
+      {error && <p className="text-sm font-medium text-critical">{error}</p>}
+      <div className="flex flex-wrap justify-end gap-2">
+        {rejecting ? (
+          <>
+            <Button type="button" variant="outline" disabled={!!pending} onClick={() => setRejecting(false)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={!!pending || !note.trim()}
+              onClick={() => run("reject")}
+            >
+              {pending === "reject" && <Loader2 className="h-4 w-4 animate-spin" />}
+              Send back to seller
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button type="button" variant="outline" disabled={!!pending} onClick={() => setRejecting(true)}>
+              Reject
+            </Button>
+            <Button type="button" disabled={!!pending} onClick={() => run("approve")}>
+              {pending === "approve" && <Loader2 className="h-4 w-4 animate-spin" />}
+              Approve
+            </Button>
+          </>
+        )}
+      </div>
     </div>
   );
 }

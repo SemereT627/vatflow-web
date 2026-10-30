@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { getCurrentProfile } from "@/lib/session";
+import { createClient } from "@/lib/supabase/server";
 import { UserMenu } from "@/components/user-menu";
 import { KilnLink } from "@/components/kiln-link";
 import { NavLinks, type NavGroup } from "@/components/nav-links";
@@ -52,12 +53,24 @@ export async function Sidebar() {
   const session = await getCurrentProfile();
   if (!session) return null;
 
-  const groupDefs: { label: string | null; items: { href: string; label: string }[] }[] =
+  // Mobile receipts waiting for an admin's review — shown on the Sales link.
+  let pendingReview = 0;
+  if (session.profile.role === "admin") {
+    const supabase = await createClient();
+    const { count } = await supabase
+      .from("sales")
+      .select("id", { count: "exact", head: true })
+      .eq("shop_id", session.shop.id)
+      .eq("review_status", "pending");
+    pendingReview = count ?? 0;
+  }
+
+  const groupDefs: { label: string | null; items: { href: string; label: string; badge?: number }[] }[] =
     session.profile.role === "admin"
       ? [
           { label: null, items: [{ href: "/admin/dashboard", label: "Dashboard" }] },
           { label: "Catalog", items: [{ href: "/admin/products", label: "Products" }] },
-          { label: "Sales", items: [{ href: "/sales", label: "Sales" }] },
+          { label: "Sales", items: [{ href: "/sales", label: "Sales", badge: pendingReview }] },
           {
             label: "Administration",
             items: [

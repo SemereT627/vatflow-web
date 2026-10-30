@@ -81,6 +81,11 @@ export function MobileNav({
                             {link.icon}
                           </span>
                           {link.label}
+                          {!!link.badge && (
+                            <span className="ml-auto rounded-full bg-warn-bg px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-warn">
+                              {link.badge}
+                            </span>
+                          )}
                         </Link>
                       );
                     })}

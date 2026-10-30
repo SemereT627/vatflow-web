@@ -10,10 +10,13 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { useFillPageSize } from "@/hooks/use-fill-page-size";
 import {
   SALES_PAGE_SIZE,
+  fetchReviewCounts,
   fetchSalesPage,
   fetchSalesStats,
+  reviewCountsKey,
   salesListKey,
   salesStatsKey,
+  type ReviewFilter,
   type SaleRow,
 } from "@/lib/sales-query";
 import { SaleRowActions } from "@/components/sale-row-actions";
@@ -32,12 +35,14 @@ export function SalesTable({
   shopId,
   isAdmin,
   initialPage,
+  initialReview,
   initialRows,
   initialTotal,
 }: {
   shopId: string;
   isAdmin: boolean;
   initialPage: number;
+  initialReview: ReviewFilter;
   initialRows: SaleRow[];
   initialTotal: number;
 }) {
@@ -49,6 +54,9 @@ export function SalesTable({
   );
   const page = isNaN(requestedPage) || requestedPage < 1 ? 1 : requestedPage;
   const urlSearch = searchParams.get("q") ?? "";
+  const reviewParam = searchParams.get("review");
+  const review: ReviewFilter =
+    isAdmin && (reviewParam === "pending" || reviewParam === "rejected") ? reviewParam : "all";
 
   const [searchInput, setSearchInput] = useState(urlSearch);
   const [syncedUrlSearch, setSyncedUrlSearch] = useState(urlSearch);
@@ -61,9 +69,10 @@ export function SalesTable({
 
   const [detailSaleId, setDetailSaleId] = useState<string | null>(null);
 
-  function goToPage(next: number, nextSearch: string = urlSearch) {
+  function goToPage(next: number, nextSearch: string = urlSearch, nextReview: ReviewFilter = review) {
     const params = new URLSearchParams();
     if (nextSearch) params.set("q", nextSearch);
+    if (nextReview !== "all") params.set("review", nextReview);
     params.set("page", String(next));
     router.push(`/sales?${params}`, { scroll: false });
   }
@@ -73,20 +82,28 @@ export function SalesTable({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
+  const matchesServerRender = !urlSearch && review === initialReview;
+
   const stats = useQuery({
-    queryKey: salesStatsKey(shopId, urlSearch),
-    queryFn: () => fetchSalesStats(shopId, urlSearch),
-    initialData: urlSearch ? undefined : { total: initialTotal },
+    queryKey: salesStatsKey(shopId, urlSearch, review),
+    queryFn: () => fetchSalesStats(shopId, urlSearch, review),
+    initialData: matchesServerRender ? { total: initialTotal } : undefined,
   });
 
   const list = useQuery({
-    queryKey: salesListKey(shopId, page, urlSearch, pageSize),
-    queryFn: () => fetchSalesPage(shopId, page, urlSearch, pageSize),
+    queryKey: salesListKey(shopId, page, urlSearch, pageSize, review),
+    queryFn: () => fetchSalesPage(shopId, page, urlSearch, pageSize, review),
     placeholderData: keepPreviousData,
     initialData:
-      page === initialPage && !urlSearch && pageSize === SALES_PAGE_SIZE
+      page === initialPage && matchesServerRender && pageSize === SALES_PAGE_SIZE
         ? { rows: initialRows }
         : undefined,
+  });
+
+  const reviewCounts = useQuery({
+    queryKey: reviewCountsKey(shopId),
+    queryFn: () => fetchReviewCounts(shopId),
+    enabled: isAdmin,
   });
 
   const total = stats.data?.total ?? 0;
@@ -99,7 +116,44 @@ export function SalesTable({
 
   return (
     <div className="mt-6 flex min-h-0 flex-1 flex-col rounded-xl border border-line bg-surface shadow-sm">
-      <div className="flex items-center border-b border-line px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3">
+        {isAdmin && (
+          <div className="flex gap-0.5 rounded-lg border border-line bg-background p-0.5" role="tablist" aria-label="Review status">
+            {(
+              [
+                { key: "all", label: "All" },
+                { key: "pending", label: "Pending review", count: reviewCounts.data?.pending },
+                { key: "rejected", label: "Rejected", count: reviewCounts.data?.rejected },
+              ] as const
+            ).map((tab) => {
+              const active = review === tab.key;
+              const count = "count" in tab ? tab.count : undefined;
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => goToPage(1, urlSearch, tab.key)}
+                  className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold ${
+                    active ? "bg-surface-2 text-foreground" : "text-ink-soft hover:text-foreground"
+                  }`}
+                >
+                  {tab.label}
+                  {!!count && (
+                    <span
+                      className={`rounded-full px-1.5 py-0.5 text-[10px] tabular-nums ${
+                        tab.key === "pending" ? "bg-warn-bg text-warn" : "bg-critical-bg text-critical"
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
         <TableSearchInput
           value={searchInput}
           onChange={setSearchInput}
@@ -135,6 +189,19 @@ export function SalesTable({
                 >
                   <TableCell className="font-semibold">
                     #{sale.vat_receipt_number}
+                    {sale.review_status === "pending" && !voided && (
+                      <span className="ml-2 rounded-full bg-warn-bg px-2 py-0.5 text-[11px] font-bold text-warn">
+                        Pending review
+                      </span>
+                    )}
+                    {sale.review_status === "rejected" && !voided && (
+                      <span
+                        title={sale.review_note ?? undefined}
+                        className="ml-2 rounded-full bg-critical-bg px-2 py-0.5 text-[11px] font-bold text-critical"
+                      >
+                        Rejected
+                      </span>
+                    )}
                     {voided && (
                       <span
                         title={sale.voided_reason ?? undefined}
@@ -169,7 +236,11 @@ export function SalesTable({
                 >
                   {urlSearch
                     ? `No results for "${urlSearch}".`
-                    : "No sales recorded yet."}
+                    : review === "pending"
+                      ? "Nothing waiting for review."
+                      : review === "rejected"
+                        ? "No rejected receipts."
+                        : "No sales recorded yet."}
                 </TableCell>
               </TableRow>
             )}
@@ -204,6 +275,7 @@ export function SalesTable({
       </div>
 
       <SaleDetailDialog
+        isAdmin={isAdmin}
         saleId={detailSaleId}
         open={detailSaleId !== null}
         onOpenChange={(open) => !open && setDetailSaleId(null)}

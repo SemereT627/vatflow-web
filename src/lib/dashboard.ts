@@ -1,4 +1,5 @@
 export type DashboardSale = {
+  review_status?: "pending" | "approved" | "rejected";
   id: string;
   seller_id: string;
   vat_category: "G" | "S";

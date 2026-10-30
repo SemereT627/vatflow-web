@@ -45,7 +45,7 @@ async function loadSales(
   const { data: rows } = await supabase
     .from("sales")
     .select(
-      "id, seller_id, vat_category, sale_date, vat_receipt_number, buyer_name, buyer_tin, client_id, profiles!sales_seller_id_fkey(full_name), sale_items(description, total_value, vat, value_after_vat)",
+      "id, seller_id, vat_category, sale_date, vat_receipt_number, buyer_name, buyer_tin, client_id, review_status, profiles!sales_seller_id_fkey(full_name), sale_items(description, total_value, vat, value_after_vat)",
     )
     .eq("shop_id", shopId)
     .is("voided_at", null)
@@ -64,6 +64,7 @@ async function loadSales(
     buyer_name: r.buyer_name,
     buyer_tin: r.buyer_tin,
     client_id: r.client_id,
+    review_status: r.review_status as DashboardSale["review_status"],
     items: r.sale_items as DashboardSale["items"],
   }));
 }
@@ -313,7 +314,19 @@ export default async function AdminDashboardPage({
                     <div className="font-semibold">{gregLabel(sale.sale_date, false)}</div>
                     <div className="text-[11px] text-ink-faint">{formatEthiopianDate(sale.sale_date)}</div>
                   </td>
-                  <td className="num px-4 py-2.5">{sale.vat_receipt_number}</td>
+                  <td className="num px-4 py-2.5">
+                    {sale.vat_receipt_number}
+                    {sale.review_status === "pending" && (
+                      <span className="ml-2 rounded-full bg-warn-bg px-2 py-0.5 font-sans text-[11px] font-bold text-warn">
+                        Pending review
+                      </span>
+                    )}
+                    {sale.review_status === "rejected" && (
+                      <span className="ml-2 rounded-full bg-critical-bg px-2 py-0.5 font-sans text-[11px] font-bold text-critical">
+                        Rejected
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-2.5">
                     <div className="font-semibold">
                       {sale.buyer_name ?? "Walk-in customer"}

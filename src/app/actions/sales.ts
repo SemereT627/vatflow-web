@@ -142,3 +142,46 @@ export async function restoreSale(saleId: string) {
   revalidatePath("/sales");
   revalidatePath("/admin/reports/voided");
 }
+
+/**
+ * Admin review of a seller's mobile receipt. Only 'pending' receipts can be
+ * reviewed — the status filter in the update makes a double-click or a
+ * stale screen a no-op instead of overwriting a newer decision.
+ */
+async function reviewSale(saleId: string, status: "approved" | "rejected", note: string | null) {
+  const session = await getCurrentProfile();
+  if (!session || session.profile.role !== "admin") {
+    throw new Error("Only admins can review receipts.");
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("sales")
+    .update({
+      review_status: status,
+      review_note: note,
+      reviewed_by: session.profile.id,
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq("id", saleId)
+    .eq("shop_id", session.shop.id)
+    .eq("review_status", "pending")
+    .select("id");
+  if (error) throw new Error(error.message);
+  if (!data?.length) throw new Error("This receipt isn't waiting for review any more.");
+
+  revalidatePath("/sales");
+  revalidatePath("/admin/dashboard");
+  revalidatePath("/", "layout");
+}
+
+export async function approveSale(saleId: string) {
+  await reviewSale(saleId, "approved", null);
+}
+
+export async function rejectSale(saleId: string, note: string) {
+  if (!note.trim()) {
+    throw new Error("Tell the seller what to fix.");
+  }
+  await reviewSale(saleId, "rejected", note.trim());
+}

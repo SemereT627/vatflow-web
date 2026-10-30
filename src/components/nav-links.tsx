@@ -4,7 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
-export type NavLink = { href: string; label: string; icon: ReactNode };
+/** badge: count shown at the end of the link, e.g. receipts awaiting review. */
+export type NavLink = { href: string; label: string; icon: ReactNode; badge?: number };
 export type NavGroup = { label: string | null; items: NavLink[] };
 
 export function NavLinks({ groups }: { groups: NavGroup[] }) {
@@ -34,6 +35,11 @@ export function NavLinks({ groups }: { groups: NavGroup[] }) {
                 >
                   <span className="h-[17px] w-[17px] flex-none [&>svg]:h-full [&>svg]:w-full">{link.icon}</span>
                   <span>{link.label}</span>
+                  {!!link.badge && (
+                    <span className="ml-auto rounded-full bg-warn-bg px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-warn">
+                      {link.badge}
+                    </span>
+                  )}
                 </Link>
               );
             })}

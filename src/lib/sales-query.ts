@@ -3,6 +3,10 @@ import { escapeLike } from "@/lib/utils";
 
 export const SALES_PAGE_SIZE = 11;
 
+export type ReviewStatus = "pending" | "approved" | "rejected";
+/** List filter: every receipt, or only those in one review state. */
+export type ReviewFilter = "all" | "pending" | "rejected";
+
 export type SaleRow = {
   id: string;
   vat_receipt_number: string;
@@ -12,6 +16,8 @@ export type SaleRow = {
   mrc_number: string | null;
   voided_at: string | null;
   voided_reason: string | null;
+  review_status: ReviewStatus;
+  review_note: string | null;
   sale_items: { value_after_vat: number }[];
 };
 
@@ -26,6 +32,9 @@ export type SaleDetail = {
   client_id: string | null;
   voided_at: string | null;
   voided_reason: string | null;
+  review_status: ReviewStatus;
+  review_note: string | null;
+  reviewed_at: string | null;
   seller_name: string | null;
   sale_items: {
     id: string;
@@ -44,8 +53,9 @@ export function salesListKey(
   page: number,
   search: string = "",
   pageSize: number = SALES_PAGE_SIZE,
+  review: ReviewFilter = "all",
 ) {
-  return ["sales", "list", shopId, page, search, pageSize] as const;
+  return ["sales", "list", shopId, page, search, pageSize, review] as const;
 }
 
 export function saleDetailKey(saleId: string) {
@@ -57,7 +67,7 @@ export async function fetchSaleDetail(saleId: string): Promise<SaleDetail> {
   const { data, error } = await supabase
     .from("sales")
     .select(
-      "id, vat_receipt_number, sale_date, buyer_name, buyer_tin, mrc_number, vat_category, client_id, voided_at, voided_reason, profiles!sales_seller_id_fkey(full_name), sale_items(id, description, quantity, unit_price, total_value, vat, value_after_vat, units(short_code))",
+      "id, vat_receipt_number, sale_date, buyer_name, buyer_tin, mrc_number, vat_category, client_id, voided_at, voided_reason, review_status, review_note, reviewed_at, profiles!sales_seller_id_fkey(full_name), sale_items(id, description, quantity, unit_price, total_value, vat, value_after_vat, units(short_code))",
     )
     .eq("id", saleId)
     .single();
@@ -69,9 +79,13 @@ export async function fetchSaleDetail(saleId: string): Promise<SaleDetail> {
   return { ...row, seller_name: row.profiles?.full_name ?? null };
 }
 
-export function salesStatsKey(shopId: string, search: string = "") {
-  return ["sales", "stats", shopId, search] as const;
+export function salesStatsKey(shopId: string, search: string = "", review: ReviewFilter = "all") {
+  return ["sales", "stats", shopId, search, review] as const;
 }
+
+/** Shared list columns, also used by the server-rendered first page. */
+export const SALE_ROW_COLUMNS =
+  "id, vat_receipt_number, sale_date, buyer_name, buyer_tin, mrc_number, voided_at, voided_reason, review_status, review_note, sale_items(value_after_vat)";
 
 /** Pass to invalidateQueries after any mutation — ["sales"] prefix-matches both the list and stats keys. */
 export const SALES_QUERY_PREFIX = ["sales"] as const;
@@ -81,6 +95,7 @@ export async function fetchSalesPage(
   page: number,
   search: string = "",
   pageSize: number = SALES_PAGE_SIZE,
+  review: ReviewFilter = "all",
 ): Promise<{ rows: SaleRow[] }> {
   const supabase = createClient();
   const from = (page - 1) * pageSize;
@@ -88,10 +103,9 @@ export async function fetchSalesPage(
 
   let query = supabase
     .from("sales")
-    .select(
-      "id, vat_receipt_number, sale_date, buyer_name, buyer_tin, mrc_number, voided_at, voided_reason, sale_items(value_after_vat)",
-    )
+    .select(SALE_ROW_COLUMNS)
     .eq("shop_id", shopId);
+  if (review !== "all") query = query.eq("review_status", review);
 
   const term = search.trim();
   if (term) {
@@ -113,12 +127,14 @@ export async function fetchSalesPage(
 export async function fetchSalesStats(
   shopId: string,
   search: string = "",
+  review: ReviewFilter = "all",
 ): Promise<{ total: number }> {
   const supabase = createClient();
   let query = supabase
     .from("sales")
     .select("id", { count: "exact", head: true })
     .eq("shop_id", shopId);
+  if (review !== "all") query = query.eq("review_status", review);
 
   const term = search.trim();
   if (term) {
@@ -130,4 +146,23 @@ export async function fetchSalesStats(
 
   const { count } = await query;
   return { total: count ?? 0 };
+}
+
+export function reviewCountsKey(shopId: string) {
+  return ["sales", "review-counts", shopId] as const;
+}
+
+/** Pending/rejected counts for the review filter tabs. */
+export async function fetchReviewCounts(shopId: string): Promise<{ pending: number; rejected: number }> {
+  const supabase = createClient();
+  const count = async (status: ReviewStatus) =>
+    (
+      await supabase
+        .from("sales")
+        .select("id", { count: "exact", head: true })
+        .eq("shop_id", shopId)
+        .eq("review_status", status)
+    ).count ?? 0;
+  const [pending, rejected] = await Promise.all([count("pending"), count("rejected")]);
+  return { pending, rejected };
 }

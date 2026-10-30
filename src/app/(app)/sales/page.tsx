@@ -3,30 +3,39 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/session";
 import { SaleForm, type SaleableProduct } from "@/components/sale-form";
 import { SalesTable } from "@/components/sales-table";
-import { SALES_PAGE_SIZE, type SaleRow } from "@/lib/sales-query";
+import { SALES_PAGE_SIZE, SALE_ROW_COLUMNS, type ReviewFilter, type SaleRow } from "@/lib/sales-query";
 
 export default async function SalesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; review?: string }>;
 }) {
   const session = await getCurrentProfile();
   if (!session) redirect("/login");
 
   const supabase = await createClient();
-  const requestedPage = parseInt((await searchParams).page ?? "1", 10);
+  const params = await searchParams;
+  const requestedPage = parseInt(params.page ?? "1", 10);
+  // Review filter is admin-only; sellers always see every receipt.
+  const review: ReviewFilter =
+    session.profile.role === "admin" && (params.review === "pending" || params.review === "rejected")
+      ? params.review
+      : "all";
   const page = isNaN(requestedPage) || requestedPage < 1 ? 1 : requestedPage;
   const from = (page - 1) * SALES_PAGE_SIZE;
   const to = from + SALES_PAGE_SIZE - 1;
 
   const [{ count: totalCount }, { data: sales }, { data: products }] = await Promise.all([
-    supabase.from("sales").select("id", { count: "exact", head: true }).eq("shop_id", session.shop.id),
-    supabase
-      .from("sales")
-      .select(
-        "id, vat_receipt_number, sale_date, buyer_name, buyer_tin, mrc_number, voided_at, voided_reason, sale_items(value_after_vat)"
-      )
-      .eq("shop_id", session.shop.id)
+    (review === "all"
+      ? supabase.from("sales").select("id", { count: "exact", head: true }).eq("shop_id", session.shop.id)
+      : supabase
+          .from("sales")
+          .select("id", { count: "exact", head: true })
+          .eq("shop_id", session.shop.id)
+          .eq("review_status", review)),
+    (review === "all"
+      ? supabase.from("sales").select(SALE_ROW_COLUMNS).eq("shop_id", session.shop.id)
+      : supabase.from("sales").select(SALE_ROW_COLUMNS).eq("shop_id", session.shop.id).eq("review_status", review))
       .order("sale_date", { ascending: false })
       .order("created_at", { ascending: false })
       .range(from, to),
@@ -70,6 +79,7 @@ export default async function SalesPage({
         shopId={session.shop.id}
         isAdmin={session.profile.role === "admin"}
         initialPage={page}
+        initialReview={review}
         initialRows={rows}
         initialTotal={total}
       />
