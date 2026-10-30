@@ -36,7 +36,12 @@ export async function createSale(input: NewSaleInput) {
     .select()
     .single();
 
-  if (saleError) throw new Error(saleError.message);
+  if (saleError) {
+    if (saleError.code === "23505" && saleError.message.includes("vat_receipt_number")) {
+      throw new Error(`Receipt #${input.vat_receipt_number} is already recorded.`);
+    }
+    throw new Error(saleError.message);
+  }
 
   const rows = input.items.map((item) => {
     const totals = calcLine(item.quantity, item.unit_price, shop.vat_rate);

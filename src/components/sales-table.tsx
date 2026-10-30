@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { formatEthiopianDate } from "@/lib/ethiopian";
-import { formatMoney } from "@/lib/utils";
+import { formatGregorianDate, formatMoney } from "@/lib/utils";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useFillPageSize } from "@/hooks/use-fill-page-size";
 import {
@@ -69,12 +69,17 @@ export function SalesTable({
 
   const [detailSaleId, setDetailSaleId] = useState<string | null>(null);
 
-  function goToPage(next: number, nextSearch: string = urlSearch, nextReview: ReviewFilter = review) {
+  function goToPage(
+    next: number,
+    nextSearch: string = urlSearch,
+    nextReview: ReviewFilter = review,
+    navigate: "push" | "replace" = "push",
+  ) {
     const params = new URLSearchParams();
     if (nextSearch) params.set("q", nextSearch);
     if (nextReview !== "all") params.set("review", nextReview);
     params.set("page", String(next));
-    router.push(`/sales?${params}`, { scroll: false });
+    router[navigate](`/sales?${params}`, { scroll: false });
   }
 
   useEffect(() => {
@@ -113,6 +118,13 @@ export function SalesTable({
   const from = (safePage - 1) * pageSize;
   const rangeStart = total === 0 ? 0 : from + 1;
   const rangeEnd = Math.min(from + rows.length, total);
+
+  // The URL can point past the last page — after approving the last pending
+  // receipt on a page, or once a taller window fits more rows per page.
+  useEffect(() => {
+    if (stats.isSuccess && page > totalPages) goToPage(totalPages, urlSearch, review, "replace");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stats.isSuccess, page, totalPages]);
 
   return (
     <div className="mt-6 flex min-h-0 flex-1 flex-col rounded-xl border border-line bg-surface shadow-sm">
@@ -211,8 +223,11 @@ export function SalesTable({
                       </span>
                     )}
                   </TableCell>
-                  <TableCell className="text-ink-soft">
-                    {formatEthiopianDate(sale.sale_date)}
+                  <TableCell>
+                    {formatGregorianDate(sale.sale_date)}
+                    <span className="ml-2 text-[11px] text-ink-faint">
+                      {formatEthiopianDate(sale.sale_date)} E.C.
+                    </span>
                   </TableCell>
                   <TableCell className="text-ink-soft">
                     {sale.buyer_name ?? "Walk-in customer"}
