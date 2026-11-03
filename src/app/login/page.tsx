@@ -2,15 +2,14 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Loader2, Receipt, TrendingUp, ShieldCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { MfaStep } from "@/components/mfa-step";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -18,6 +17,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [resetStatus, setResetStatus] = useState<string | null>(null);
+  const [passwordDone, setPasswordDone] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -33,8 +33,8 @@ export default function LoginPage() {
       setError(error.message);
       return;
     }
-    router.push("/");
-    router.refresh();
+    // Every account needs two-step sign-in; ask for the code right here.
+    setPasswordDone(true);
   }
 
   async function handleForgotPassword() {
@@ -64,78 +64,84 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <h1 className="text-2xl font-bold">Welcome back</h1>
-          <p className="mt-1.5 text-sm text-ink-soft">
-            Sign in to continue managing your sales and VAT records.
-          </p>
+          {passwordDone ? (
+            <MfaStep />
+          ) : (
+            <>
+            <h1 className="text-2xl font-bold">Welcome back</h1>
+            <p className="mt-1.5 text-sm text-ink-soft">
+              Sign in to continue managing your sales and VAT records.
+            </p>
 
-          <form onSubmit={handleSubmit} className="mt-8 space-y-5" noValidate>
-            <div className="space-y-1.5">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="h-10"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
-                <button
-                  type="button"
-                  onClick={handleForgotPassword}
-                  className="text-xs font-semibold text-brand hover:underline"
-                >
-                  Forgot password?
-                </button>
-              </div>
-              <div className="relative">
+            <form onSubmit={handleSubmit} className="mt-8 space-y-5" noValidate>
+              <div className="space-y-1.5">
+                <Label htmlFor="email">Email</Label>
                 <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  autoComplete="current-password"
+                  id="email"
+                  type="email"
+                  autoComplete="email"
                   required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="h-10 pr-10"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="h-10"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((v) => !v)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                  className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-ink-soft hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
               </div>
-            </div>
 
-            <label className="flex select-none items-center gap-2 text-sm text-ink-soft">
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="h-4 w-4 rounded border-line accent-brand"
-              />
-              Remember me
-            </label>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
+                  <button
+                    type="button"
+                    onClick={handleForgotPassword}
+                    className="text-xs font-semibold text-brand hover:underline"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="h-10 pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-ink-soft hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
 
-            {/* Reserve space so error/status text never shifts layout */}
-            <div className="min-h-5 text-sm" role="status" aria-live="polite">
-              {error && <p className="font-medium text-critical">{error}</p>}
-              {!error && resetStatus && <p className="font-medium text-good">{resetStatus}</p>}
-            </div>
+              <label className="flex select-none items-center gap-2 text-sm text-ink-soft">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="h-4 w-4 rounded border-line accent-brand"
+                />
+                Remember me
+              </label>
 
-            <Button type="submit" disabled={loading} className="h-10 w-full">
-              {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-              {loading ? "Signing in…" : "Sign in"}
-            </Button>
-          </form>
+              {/* Reserve space so error/status text never shifts layout */}
+              <div className="min-h-5 text-sm" role="status" aria-live="polite">
+                {error && <p className="font-medium text-critical">{error}</p>}
+                {!error && resetStatus && <p className="font-medium text-good">{resetStatus}</p>}
+              </div>
+
+              <Button type="submit" disabled={loading} className="h-10 w-full">
+                {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+                {loading ? "Signing in…" : "Sign in"}
+              </Button>
+            </form>
+            </>
+          )}
         </div>
       </div>
 
