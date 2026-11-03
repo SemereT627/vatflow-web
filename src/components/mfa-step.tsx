@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 type Mode =
@@ -133,18 +132,34 @@ export function MfaStep() {
         <form onSubmit={handleSubmit} className="mt-6 space-y-5">
           <div className="space-y-1.5">
             <Label htmlFor="code">6-digit code</Label>
-            <Input
-              id="code"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              maxLength={6}
-              placeholder="123456"
-              value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-              autoFocus
-              required
-              className="h-11 text-center font-mono text-lg tracking-[0.4em]"
-            />
+            {/* One real input (paste, autofill, screen readers) drawn as 6 boxes. */}
+            <div className="group relative">
+              <input
+                id="code"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                autoFocus
+                required
+                className="absolute inset-0 h-full w-full cursor-text opacity-0"
+              />
+              <div className="pointer-events-none grid grid-cols-6 gap-2" aria-hidden="true">
+                {Array.from({ length: 6 }, (_, i) => (
+                  <div
+                    key={i}
+                    className={`flex h-12 items-center justify-center rounded-lg border bg-surface font-mono text-xl font-semibold ${
+                      i === Math.min(code.length, 5)
+                        ? "border-line group-focus-within:border-brand group-focus-within:ring-2 group-focus-within:ring-brand/30"
+                        : "border-line"
+                    }`}
+                  >
+                    {code[i] ?? ""}
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
           <div className="min-h-5 text-sm" role="status" aria-live="polite">
