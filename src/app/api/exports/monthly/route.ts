@@ -72,7 +72,8 @@ export async function GET(request: NextRequest) {
     .is("voided_at", null)
     .gte("sale_date", start)
     .lte("sale_date", end)
-    .order("sale_date", { ascending: true });
+    .order("sale_date", { ascending: true })
+    .order("vat_receipt_number", { ascending: true });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 

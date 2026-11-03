@@ -117,6 +117,10 @@ export async function fetchSalesPage(
 
   const { data, error } = await query
     .order("sale_date", { ascending: false })
+    // Same-width numbers sort as text = numeric order, so a receipt entered late
+    // still lands in sequence. shortcut: machine (8-digit) and handwritten (7-digit)
+    // series only group by day, not by series; add a series column if that matters.
+    .order("vat_receipt_number", { ascending: false })
     .order("created_at", { ascending: false })
     .range(from, to);
 

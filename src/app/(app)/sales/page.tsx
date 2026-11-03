@@ -37,6 +37,7 @@ export default async function SalesPage({
       ? supabase.from("sales").select(SALE_ROW_COLUMNS).eq("shop_id", session.shop.id)
       : supabase.from("sales").select(SALE_ROW_COLUMNS).eq("shop_id", session.shop.id).eq("review_status", review))
       .order("sale_date", { ascending: false })
+      .order("vat_receipt_number", { ascending: false })
       .order("created_at", { ascending: false })
       .range(from, to),
     supabase
