@@ -3,12 +3,12 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/session";
 import { SaleForm, type SaleableProduct } from "@/components/sale-form";
 import { SalesTable } from "@/components/sales-table";
-import { SALES_PAGE_SIZE, SALE_ROW_COLUMNS, periodRange, type ReviewFilter, type SaleRow } from "@/lib/sales-query";
+import { MACHINE_PATTERN, SALES_PAGE_SIZE, SALE_ROW_COLUMNS, parseSeries, periodRange, type ReviewFilter, type SaleRow } from "@/lib/sales-query";
 
 export default async function SalesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; review?: string; period?: string }>;
+  searchParams: Promise<{ page?: string; review?: string; period?: string; series?: string }>;
 }) {
   const session = await getCurrentProfile();
   if (!session) redirect("/login");
@@ -36,6 +36,15 @@ export default async function SalesPage({
   if (range) {
     countQuery = countQuery.gte("sale_date", range.start).lte("sale_date", range.end);
     rowsQuery = rowsQuery.gte("sale_date", range.start).lte("sale_date", range.end);
+  }
+  const series = parseSeries(params.series);
+  if (series === "machine") {
+    countQuery = countQuery.like("vat_receipt_number", MACHINE_PATTERN);
+    rowsQuery = rowsQuery.like("vat_receipt_number", MACHINE_PATTERN);
+  }
+  if (series === "handwritten") {
+    countQuery = countQuery.not("vat_receipt_number", "like", MACHINE_PATTERN);
+    rowsQuery = rowsQuery.not("vat_receipt_number", "like", MACHINE_PATTERN);
   }
 
   const [{ count: totalCount }, { data: sales }, { data: products }] = await Promise.all([
@@ -87,6 +96,7 @@ export default async function SalesPage({
         initialPage={page}
         initialReview={review}
         initialPeriod={period}
+        initialSeries={series}
         initialRows={rows}
         initialTotal={total}
       />

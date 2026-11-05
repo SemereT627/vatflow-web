@@ -15,6 +15,20 @@ export function periodRange(period: string): { start: string; end: string } | nu
   return ethiopianMonthRange(Number(m[1]), Number(m[2]));
 }
 
+/** Machine-issued receipt numbers are 8 digits; handwritten ones (power cuts) are shorter. */
+export const MACHINE_PATTERN = "________"; // 8 × "_" — LIKE matches exactly 8 characters
+export type ReceiptSeries = "" | "machine" | "handwritten";
+
+export function parseSeries(value: string | null | undefined): ReceiptSeries {
+  return value === "machine" || value === "handwritten" ? value : "";
+}
+
+/** Machine receipts first, then handwritten; each in number order (padded digits: length, then text). */
+export function compareReceiptNumbers(a: string, b: string): number {
+  const series = (n: string) => (n.length === MACHINE_PATTERN.length ? 0 : 1);
+  return series(a) - series(b) || a.length - b.length || a.localeCompare(b);
+}
+
 export type SaleRow = {
   id: string;
   vat_receipt_number: string;
@@ -63,8 +77,9 @@ export function salesListKey(
   pageSize: number = SALES_PAGE_SIZE,
   review: ReviewFilter = "all",
   period: string = "",
+  series: ReceiptSeries = "",
 ) {
-  return ["sales", "list", shopId, page, search, pageSize, review, period] as const;
+  return ["sales", "list", shopId, page, search, pageSize, review, period, series] as const;
 }
 
 export function saleDetailKey(saleId: string) {
@@ -88,8 +103,14 @@ export async function fetchSaleDetail(saleId: string): Promise<SaleDetail> {
   return { ...row, seller_name: row.profiles?.full_name ?? null };
 }
 
-export function salesStatsKey(shopId: string, search: string = "", review: ReviewFilter = "all", period: string = "") {
-  return ["sales", "stats", shopId, search, review, period] as const;
+export function salesStatsKey(
+  shopId: string,
+  search: string = "",
+  review: ReviewFilter = "all",
+  period: string = "",
+  series: ReceiptSeries = "",
+) {
+  return ["sales", "stats", shopId, search, review, period, series] as const;
 }
 
 /** Shared list columns, also used by the server-rendered first page. */
@@ -106,6 +127,7 @@ export async function fetchSalesPage(
   pageSize: number = SALES_PAGE_SIZE,
   review: ReviewFilter = "all",
   period: string = "",
+  series: ReceiptSeries = "",
 ): Promise<{ rows: SaleRow[] }> {
   const supabase = createClient();
   const from = (page - 1) * pageSize;
@@ -118,6 +140,8 @@ export async function fetchSalesPage(
   if (review !== "all") query = query.eq("review_status", review);
   const range = periodRange(period);
   if (range) query = query.gte("sale_date", range.start).lte("sale_date", range.end);
+  if (series === "machine") query = query.like("vat_receipt_number", MACHINE_PATTERN);
+  if (series === "handwritten") query = query.not("vat_receipt_number", "like", MACHINE_PATTERN);
 
   const term = search.trim();
   if (term) {
@@ -186,6 +210,7 @@ export async function fetchSalesStats(
   search: string = "",
   review: ReviewFilter = "all",
   period: string = "",
+  series: ReceiptSeries = "",
 ): Promise<{ total: number }> {
   const supabase = createClient();
   let query = supabase
@@ -195,6 +220,8 @@ export async function fetchSalesStats(
   if (review !== "all") query = query.eq("review_status", review);
   const range = periodRange(period);
   if (range) query = query.gte("sale_date", range.start).lte("sale_date", range.end);
+  if (series === "machine") query = query.like("vat_receipt_number", MACHINE_PATTERN);
+  if (series === "handwritten") query = query.not("vat_receipt_number", "like", MACHINE_PATTERN);
 
   const term = search.trim();
   if (term) {

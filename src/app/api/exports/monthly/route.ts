@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import ExcelJS from "exceljs";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/session";
+import { compareReceiptNumbers } from "@/lib/sales-query";
 import { ethiopianMonthRange, formatEthiopianDate, journalTitle } from "@/lib/ethiopian";
 
 type TemplateColumn = { header: string; field: string; format?: string };
@@ -71,9 +72,7 @@ export async function GET(request: NextRequest) {
     .eq("shop_id", session.shop.id)
     .is("voided_at", null)
     .gte("sale_date", start)
-    .lte("sale_date", end)
-    .order("sale_date", { ascending: true })
-    .order("vat_receipt_number", { ascending: true });
+    .lte("sale_date", end);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
@@ -94,7 +93,11 @@ export async function GET(request: NextRequest) {
 
   sheet.columns = columns.map((c) => ({ header: c.header, key: c.field, width: 20 }));
 
-  for (const sale of (sales ?? []) as unknown as SaleWithItems[]) {
+  // Whole month: machine receipts in number order, then handwritten ones in number order.
+  const ordered = ((sales ?? []) as unknown as SaleWithItems[]).sort((a, b) =>
+    compareReceiptNumbers(a.vat_receipt_number, b.vat_receipt_number),
+  );
+  for (const sale of ordered) {
     for (const item of sale.sale_items) {
       sheet.addRow(buildRow(sale, item));
     }

@@ -14,11 +14,13 @@ import {
   fetchSalesPage,
   fetchPeriodTotals,
   fetchSalesStats,
+  parseSeries,
   periodRange,
   periodTotalsKey,
   reviewCountsKey,
   salesListKey,
   salesStatsKey,
+  type ReceiptSeries,
   type ReviewFilter,
   type SaleRow,
 } from "@/lib/sales-query";
@@ -41,6 +43,7 @@ export function SalesTable({
   initialPage,
   initialReview,
   initialPeriod,
+  initialSeries,
   initialRows,
   initialTotal,
 }: {
@@ -49,6 +52,7 @@ export function SalesTable({
   initialPage: number;
   initialReview: ReviewFilter;
   initialPeriod: string;
+  initialSeries: ReceiptSeries;
   initialRows: SaleRow[];
   initialTotal: number;
 }) {
@@ -72,6 +76,7 @@ export function SalesTable({
   }
   const periodParam = searchParams.get("period") ?? "";
   const period = periodRange(periodParam) ? periodParam : "";
+  const series = parseSeries(searchParams.get("series"));
   const currentYear = gregorianToEthiopian(addisTodayIso()).year;
   const [periodYear, periodMonth] = period ? period.split("-").map(Number) : [currentYear, 0];
   const search = useDebounce(searchInput, 300);
@@ -81,14 +86,20 @@ export function SalesTable({
 
   function goToPage(
     next: number,
-    changes: { search?: string; review?: ReviewFilter; period?: string } = {},
+    changes: { search?: string; review?: ReviewFilter; period?: string; series?: ReceiptSeries } = {},
     navigate: "push" | "replace" = "push",
   ) {
-    const { search: nextSearch = urlSearch, review: nextReview = review, period: nextPeriod = period } = changes;
+    const {
+      search: nextSearch = urlSearch,
+      review: nextReview = review,
+      period: nextPeriod = period,
+      series: nextSeries = series,
+    } = changes;
     const params = new URLSearchParams();
     if (nextSearch) params.set("q", nextSearch);
     if (nextReview !== "all") params.set("review", nextReview);
     if (nextPeriod) params.set("period", nextPeriod);
+    if (nextSeries) params.set("series", nextSeries);
     params.set("page", String(next));
     router[navigate](`/sales?${params}`, { scroll: false });
   }
@@ -98,17 +109,17 @@ export function SalesTable({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
-  const matchesServerRender = !urlSearch && review === initialReview && period === initialPeriod;
+  const matchesServerRender = !urlSearch && review === initialReview && period === initialPeriod && series === initialSeries;
 
   const stats = useQuery({
-    queryKey: salesStatsKey(shopId, urlSearch, review, period),
-    queryFn: () => fetchSalesStats(shopId, urlSearch, review, period),
+    queryKey: salesStatsKey(shopId, urlSearch, review, period, series),
+    queryFn: () => fetchSalesStats(shopId, urlSearch, review, period, series),
     initialData: matchesServerRender ? { total: initialTotal } : undefined,
   });
 
   const list = useQuery({
-    queryKey: salesListKey(shopId, page, urlSearch, pageSize, review, period),
-    queryFn: () => fetchSalesPage(shopId, page, urlSearch, pageSize, review, period),
+    queryKey: salesListKey(shopId, page, urlSearch, pageSize, review, period, series),
+    queryFn: () => fetchSalesPage(shopId, page, urlSearch, pageSize, review, period, series),
     placeholderData: keepPreviousData,
     initialData:
       page === initialPage && matchesServerRender && pageSize === SALES_PAGE_SIZE
@@ -184,6 +195,19 @@ export function SalesTable({
           </div>
         )}
         <div className="flex flex-wrap items-center gap-2">
+          <Select
+            value={series || "all"}
+            onValueChange={(v) => goToPage(1, { series: v === "all" ? "" : (v as ReceiptSeries) })}
+          >
+            <SelectTrigger className="w-36" aria-label="Receipt type">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All receipts</SelectItem>
+              <SelectItem value="machine">Machine</SelectItem>
+              <SelectItem value="handwritten">Handwritten</SelectItem>
+            </SelectContent>
+          </Select>
           <Select
             value={String(periodMonth)}
             onValueChange={(v) => goToPage(1, { period: v === "0" ? "" : `${periodYear}-${v}` })}
@@ -331,7 +355,9 @@ export function SalesTable({
                 >
                   {urlSearch
                     ? `No results for "${urlSearch}".`
-                    : periodMonth > 0
+                    : series === "handwritten" && periodMonth === 0
+                      ? "No handwritten receipts."
+                      : periodMonth > 0
                       ? `No sales in ${ethiopianMonthName(periodMonth)} ${periodYear}.`
                       : review === "pending"
                         ? "Nothing waiting for review."
