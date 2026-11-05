@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { TRUSTED_DEVICE_COOKIE, isTrustedDevice } from "@/lib/device-trust";
 
 // A refresh token can keep a session alive indefinitely as long as the user
 // keeps making requests, so relying on the Supabase access token's own ~1hr
@@ -41,7 +42,8 @@ export async function proxy(request: NextRequest) {
 
   const lastActivity = request.cookies.get(LAST_ACTIVITY_COOKIE)?.value;
   const now = Date.now();
-  const inactive = !!lastActivity && now - Number(lastActivity) > INACTIVITY_LIMIT_MS;
+  const trusted = isTrustedDevice(request.cookies.get(TRUSTED_DEVICE_COOKIE)?.value, now);
+  const inactive = !trusted && !!lastActivity && now - Number(lastActivity) > INACTIVITY_LIMIT_MS;
 
   if (inactive) {
     await supabase.auth.signOut();
@@ -60,14 +62,13 @@ export async function proxy(request: NextRequest) {
     return redirectToLogin(request, response);
   }
 
-  // Two-step sign-in: signed-in sessions below aal2 go to /mfa (enrol on
-  // first use, verify afterwards) until they enter an authenticator code.
-  // Verified sessions have nothing left to do on /login or /mfa.
+  // Two-step sign-in: signed-in sessions below aal2 stay on /login, which
+  // shows the code step (enrol on first use, verify afterwards). Verified
+  // sessions have nothing left to do there.
   if (user) {
-    const onMfa = request.nextUrl.pathname.startsWith("/mfa");
     const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
     const verified = aal?.currentLevel === "aal2";
-    const target = !verified && !onMfa ? "/mfa" : verified && (onMfa || onLogin) ? "/" : null;
+    const target = !verified && !onLogin ? "/login" : verified && onLogin ? "/" : null;
     if (target) {
       const url = request.nextUrl.clone();
       url.pathname = target;

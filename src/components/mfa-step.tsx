@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { setDeviceTrust } from "@/app/actions/profile";
+import { TRUSTED_DEVICE_DAYS } from "@/lib/device-trust";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 
@@ -13,14 +15,15 @@ type Mode =
   | { kind: "error"; message: string };
 
 /**
- * Second sign-in step, shown on /login right after the password and on /mfa
- * (where the proxy sends every session below aal2, e.g. after a reload).
+ * Second sign-in step, shown on /login after the password — and on load when
+ * the session is already past the password (the proxy keeps those on /login).
  * First visit: scan a QR code into an authenticator app and confirm a code.
  * Later visits: enter the current code.
  */
 export function MfaStep() {
   const [mode, setMode] = useState<Mode>({ kind: "loading" });
   const [code, setCode] = useState("");
+  const [trustDevice, setTrustDevice] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   // Strict Mode runs effects twice in dev; set up only once.
@@ -78,6 +81,8 @@ export function MfaStep() {
       setSubmitting(false);
       return;
     }
+    // Best-effort: failing here only means the 30-minute sign-out still applies.
+    await setDeviceTrust(trustDevice).catch(() => {});
     // Full load so the proxy sees the upgraded (aal2) session cookie.
     // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- intentional hard reload
     window.location.assign("/");
@@ -165,6 +170,16 @@ export function MfaStep() {
           <div className="min-h-5 text-sm" role="status" aria-live="polite">
             {error && <p className="font-medium text-critical">{error}</p>}
           </div>
+
+          <label className="flex select-none items-center gap-2 text-sm text-ink-soft">
+            <input
+              type="checkbox"
+              checked={trustDevice}
+              onChange={(e) => setTrustDevice(e.target.checked)}
+              className="h-4 w-4 rounded border-line accent-brand"
+            />
+            Keep me signed in on this device for {TRUSTED_DEVICE_DAYS} days
+          </label>
 
           <Button
             type="submit"

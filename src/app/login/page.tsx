@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Eye, EyeOff, Loader2, Receipt, TrendingUp, ShieldCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -13,11 +13,19 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [resetStatus, setResetStatus] = useState<string | null>(null);
   const [passwordDone, setPasswordDone] = useState(false);
+
+  // Password already accepted (e.g. the page was reloaded mid-sign-in): go straight to the code.
+  useEffect(() => {
+    createClient()
+      .auth.mfa.getAuthenticatorAssuranceLevel()
+      .then(({ data }) => {
+        if (data?.currentLevel === "aal1") setPasswordDone(true);
+      });
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -118,16 +126,6 @@ export default function LoginPage() {
                   </button>
                 </div>
               </div>
-
-              <label className="flex select-none items-center gap-2 text-sm text-ink-soft">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="h-4 w-4 rounded border-line accent-brand"
-                />
-                Remember me
-              </label>
 
               {/* Reserve space so error/status text never shifts layout */}
               <div className="min-h-5 text-sm" role="status" aria-live="polite">
