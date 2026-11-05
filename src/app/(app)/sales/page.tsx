@@ -3,12 +3,12 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/session";
 import { SaleForm, type SaleableProduct } from "@/components/sale-form";
 import { SalesTable } from "@/components/sales-table";
-import { SALES_PAGE_SIZE, SALE_ROW_COLUMNS, type ReviewFilter, type SaleRow } from "@/lib/sales-query";
+import { SALES_PAGE_SIZE, SALE_ROW_COLUMNS, periodRange, type ReviewFilter, type SaleRow } from "@/lib/sales-query";
 
 export default async function SalesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; review?: string }>;
+  searchParams: Promise<{ page?: string; review?: string; period?: string }>;
 }) {
   const session = await getCurrentProfile();
   if (!session) redirect("/login");
@@ -25,17 +25,22 @@ export default async function SalesPage({
   const from = (page - 1) * SALES_PAGE_SIZE;
   const to = from + SALES_PAGE_SIZE - 1;
 
+  const range = periodRange(params.period ?? "");
+  const period = range ? params.period! : "";
+  let countQuery = supabase.from("sales").select("id", { count: "exact", head: true }).eq("shop_id", session.shop.id);
+  let rowsQuery = supabase.from("sales").select(SALE_ROW_COLUMNS).eq("shop_id", session.shop.id);
+  if (review !== "all") {
+    countQuery = countQuery.eq("review_status", review);
+    rowsQuery = rowsQuery.eq("review_status", review);
+  }
+  if (range) {
+    countQuery = countQuery.gte("sale_date", range.start).lte("sale_date", range.end);
+    rowsQuery = rowsQuery.gte("sale_date", range.start).lte("sale_date", range.end);
+  }
+
   const [{ count: totalCount }, { data: sales }, { data: products }] = await Promise.all([
-    (review === "all"
-      ? supabase.from("sales").select("id", { count: "exact", head: true }).eq("shop_id", session.shop.id)
-      : supabase
-          .from("sales")
-          .select("id", { count: "exact", head: true })
-          .eq("shop_id", session.shop.id)
-          .eq("review_status", review)),
-    (review === "all"
-      ? supabase.from("sales").select(SALE_ROW_COLUMNS).eq("shop_id", session.shop.id)
-      : supabase.from("sales").select(SALE_ROW_COLUMNS).eq("shop_id", session.shop.id).eq("review_status", review))
+    countQuery,
+    rowsQuery
       .order("sale_date", { ascending: false })
       .order("vat_receipt_number", { ascending: false })
       .order("created_at", { ascending: false })
@@ -81,6 +86,7 @@ export default async function SalesPage({
         isAdmin={session.profile.role === "admin"}
         initialPage={page}
         initialReview={review}
+        initialPeriod={period}
         initialRows={rows}
         initialTotal={total}
       />

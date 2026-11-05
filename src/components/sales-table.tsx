@@ -4,15 +4,18 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
-import { formatEthiopianDate } from "@/lib/ethiopian";
-import { formatGregorianDate, formatMoney } from "@/lib/utils";
+import { ethiopianMonthName, formatEthiopianDate, gregorianToEthiopian } from "@/lib/ethiopian";
+import { addisTodayIso, formatGregorianDate, formatMoney } from "@/lib/utils";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useFillPageSize } from "@/hooks/use-fill-page-size";
 import {
   SALES_PAGE_SIZE,
   fetchReviewCounts,
   fetchSalesPage,
+  fetchPeriodTotals,
   fetchSalesStats,
+  periodRange,
+  periodTotalsKey,
   reviewCountsKey,
   salesListKey,
   salesStatsKey,
@@ -22,6 +25,7 @@ import {
 import { SaleRowActions } from "@/components/sale-row-actions";
 import { SaleDetailDialog } from "@/components/sale-detail-dialog";
 import { TableSearchInput } from "@/components/table-search-input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -36,6 +40,7 @@ export function SalesTable({
   isAdmin,
   initialPage,
   initialReview,
+  initialPeriod,
   initialRows,
   initialTotal,
 }: {
@@ -43,6 +48,7 @@ export function SalesTable({
   isAdmin: boolean;
   initialPage: number;
   initialReview: ReviewFilter;
+  initialPeriod: string;
   initialRows: SaleRow[];
   initialTotal: number;
 }) {
@@ -64,6 +70,10 @@ export function SalesTable({
     setSyncedUrlSearch(urlSearch);
     setSearchInput(urlSearch);
   }
+  const periodParam = searchParams.get("period") ?? "";
+  const period = periodRange(periodParam) ? periodParam : "";
+  const currentYear = gregorianToEthiopian(addisTodayIso()).year;
+  const [periodYear, periodMonth] = period ? period.split("-").map(Number) : [currentYear, 0];
   const search = useDebounce(searchInput, 300);
   const { containerRef, pageSize } = useFillPageSize(SALES_PAGE_SIZE);
 
@@ -71,33 +81,34 @@ export function SalesTable({
 
   function goToPage(
     next: number,
-    nextSearch: string = urlSearch,
-    nextReview: ReviewFilter = review,
+    changes: { search?: string; review?: ReviewFilter; period?: string } = {},
     navigate: "push" | "replace" = "push",
   ) {
+    const { search: nextSearch = urlSearch, review: nextReview = review, period: nextPeriod = period } = changes;
     const params = new URLSearchParams();
     if (nextSearch) params.set("q", nextSearch);
     if (nextReview !== "all") params.set("review", nextReview);
+    if (nextPeriod) params.set("period", nextPeriod);
     params.set("page", String(next));
     router[navigate](`/sales?${params}`, { scroll: false });
   }
 
   useEffect(() => {
-    if (search !== urlSearch) goToPage(1, search);
+    if (search !== urlSearch) goToPage(1, { search });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
-  const matchesServerRender = !urlSearch && review === initialReview;
+  const matchesServerRender = !urlSearch && review === initialReview && period === initialPeriod;
 
   const stats = useQuery({
-    queryKey: salesStatsKey(shopId, urlSearch, review),
-    queryFn: () => fetchSalesStats(shopId, urlSearch, review),
+    queryKey: salesStatsKey(shopId, urlSearch, review, period),
+    queryFn: () => fetchSalesStats(shopId, urlSearch, review, period),
     initialData: matchesServerRender ? { total: initialTotal } : undefined,
   });
 
   const list = useQuery({
-    queryKey: salesListKey(shopId, page, urlSearch, pageSize, review),
-    queryFn: () => fetchSalesPage(shopId, page, urlSearch, pageSize, review),
+    queryKey: salesListKey(shopId, page, urlSearch, pageSize, review, period),
+    queryFn: () => fetchSalesPage(shopId, page, urlSearch, pageSize, review, period),
     placeholderData: keepPreviousData,
     initialData:
       page === initialPage && matchesServerRender && pageSize === SALES_PAGE_SIZE
@@ -111,6 +122,12 @@ export function SalesTable({
     enabled: isAdmin,
   });
 
+  const periodTotals = useQuery({
+    queryKey: periodTotalsKey(shopId, period),
+    queryFn: () => fetchPeriodTotals(shopId, period),
+    enabled: !!period,
+  });
+
   const total = stats.data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const safePage = Math.min(page, totalPages);
@@ -122,7 +139,7 @@ export function SalesTable({
   // The URL can point past the last page — after approving the last pending
   // receipt on a page, or once a taller window fits more rows per page.
   useEffect(() => {
-    if (stats.isSuccess && page > totalPages) goToPage(totalPages, urlSearch, review, "replace");
+    if (stats.isSuccess && page > totalPages) goToPage(totalPages, {}, "replace");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stats.isSuccess, page, totalPages]);
 
@@ -146,7 +163,7 @@ export function SalesTable({
                   type="button"
                   role="tab"
                   aria-selected={active}
-                  onClick={() => goToPage(1, urlSearch, tab.key)}
+                  onClick={() => goToPage(1, { review: tab.key })}
                   className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold ${
                     active ? "bg-surface-2 text-foreground" : "text-ink-soft hover:text-foreground"
                   }`}
@@ -166,12 +183,75 @@ export function SalesTable({
             })}
           </div>
         )}
-        <TableSearchInput
-          value={searchInput}
-          onChange={setSearchInput}
-          placeholder="Search sales…"
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          <Select
+            value={String(periodMonth)}
+            onValueChange={(v) => goToPage(1, { period: v === "0" ? "" : `${periodYear}-${v}` })}
+          >
+            <SelectTrigger className="w-36" aria-label="Month">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="0">All months</SelectItem>
+              {Array.from({ length: 13 }, (_, i) => i + 1).map((m) => (
+                <SelectItem key={m} value={String(m)}>
+                  {ethiopianMonthName(m)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {periodMonth > 0 && (
+            <Select
+              value={String(periodYear)}
+              onValueChange={(v) => goToPage(1, { period: `${v}-${periodMonth}` })}
+            >
+              <SelectTrigger className="w-24" aria-label="Year (E.C.)">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Array.from({ length: 5 }, (_, i) => currentYear - i).map((y) => (
+                  <SelectItem key={y} value={String(y)}>
+                    {y}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          <TableSearchInput
+            value={searchInput}
+            onChange={setSearchInput}
+            placeholder="Search sales…"
+          />
+        </div>
       </div>
+      {periodMonth > 0 && (
+        <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1 border-b border-line bg-surface-2 px-4 py-2.5 text-xs text-ink-soft">
+          <span className="font-bold text-foreground">
+            {ethiopianMonthName(periodMonth)} {periodYear} total
+          </span>
+          {periodTotals.data ? (
+            <>
+              <span>
+                {periodTotals.data.receipts} receipt{periodTotals.data.receipts === 1 ? "" : "s"}
+              </span>
+              <span>
+                Before VAT <span className="num font-semibold text-foreground">{formatMoney(periodTotals.data.beforeVat)} ETB</span>
+              </span>
+              <span>
+                VAT <span className="num font-semibold text-foreground">{formatMoney(periodTotals.data.vat)} ETB</span>
+              </span>
+              <span>
+                After VAT <span className="num text-sm font-bold text-foreground">{formatMoney(periodTotals.data.afterVat)} ETB</span>
+              </span>
+              <span className="text-ink-faint">Voided receipts excluded</span>
+            </>
+          ) : periodTotals.isError ? (
+            <span className="text-critical">Couldn&apos;t load the month total.</span>
+          ) : (
+            <Loader2 className="h-3 w-3 animate-spin" aria-label="Loading month total" />
+          )}
+        </div>
+      )}
       <div
         ref={containerRef}
         className={`min-h-0 flex-1 overflow-y-auto transition-opacity ${list.isFetching ? "opacity-60" : ""}`}
@@ -251,11 +331,13 @@ export function SalesTable({
                 >
                   {urlSearch
                     ? `No results for "${urlSearch}".`
-                    : review === "pending"
-                      ? "Nothing waiting for review."
-                      : review === "rejected"
-                        ? "No rejected receipts."
-                        : "No sales recorded yet."}
+                    : periodMonth > 0
+                      ? `No sales in ${ethiopianMonthName(periodMonth)} ${periodYear}.`
+                      : review === "pending"
+                        ? "Nothing waiting for review."
+                        : review === "rejected"
+                          ? "No rejected receipts."
+                          : "No sales recorded yet."}
                 </TableCell>
               </TableRow>
             )}
