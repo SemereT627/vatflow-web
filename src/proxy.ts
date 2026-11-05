@@ -68,7 +68,11 @@ export async function proxy(request: NextRequest) {
   if (user) {
     const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
     const verified = aal?.currentLevel === "aal2";
-    const target = !verified && !onLogin ? "/login" : verified && onLogin ? "/" : null;
+    // A server action posts to the page it runs on: the code step's setDeviceTrust
+    // call reaches /login already verified and must not be redirected away.
+    const isServerAction = request.headers.has("next-action");
+    const target =
+      !verified && !onLogin ? "/login" : verified && onLogin && !isServerAction ? "/" : null;
     if (target) {
       const url = request.nextUrl.clone();
       url.pathname = target;
