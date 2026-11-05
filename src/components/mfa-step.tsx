@@ -145,40 +145,58 @@ export function MfaStep() {
                 autoComplete="one-time-code"
                 maxLength={6}
                 value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                onChange={(e) => {
+                  setCode(e.target.value.replace(/\D/g, "").slice(0, 6));
+                  setError(null);
+                }}
                 autoFocus
                 required
+                aria-invalid={!!error}
+                aria-describedby={error ? "code-error" : undefined}
                 className="absolute inset-0 h-full w-full cursor-text opacity-0"
               />
               <div className="pointer-events-none grid grid-cols-6 gap-2" aria-hidden="true">
-                {Array.from({ length: 6 }, (_, i) => (
-                  <div
-                    key={i}
-                    className={`flex h-12 items-center justify-center rounded-lg border bg-surface font-mono text-xl font-semibold ${
-                      i === Math.min(code.length, 5)
-                        ? "border-line group-focus-within:border-brand group-focus-within:ring-2 group-focus-within:ring-brand/30"
-                        : "border-line"
-                    }`}
-                  >
-                    {code[i] ?? ""}
-                  </div>
-                ))}
+                {Array.from({ length: 6 }, (_, i) => {
+                  const active = i === code.length;
+                  return (
+                    <div
+                      key={i}
+                      className={`flex h-12 items-center justify-center rounded-lg border bg-surface-2 font-mono text-xl font-semibold transition-colors ${
+                        error
+                          ? "border-critical"
+                          : code[i]
+                            ? "border-brand/60"
+                            : active
+                              ? "border-line group-focus-within:border-brand group-focus-within:ring-2 group-focus-within:ring-brand/30"
+                              : "border-line"
+                      }`}
+                    >
+                      {code[i] ?? (active && <span className="hidden h-6 w-px animate-pulse bg-foreground group-focus-within:block" />)}
+                    </div>
+                  );
+                })}
               </div>
             </div>
+            {error && (
+              <p id="code-error" role="alert" className="text-sm font-medium text-critical">
+                {error}
+              </p>
+            )}
           </div>
 
-          <div className="min-h-5 text-sm" role="status" aria-live="polite">
-            {error && <p className="font-medium text-critical">{error}</p>}
-          </div>
-
-          <label className="flex select-none items-center gap-2 text-sm text-ink-soft">
+          <label className="flex select-none items-start gap-2.5 text-sm">
             <input
               type="checkbox"
               checked={trustDevice}
               onChange={(e) => setTrustDevice(e.target.checked)}
-              className="h-4 w-4 rounded border-line accent-brand"
+              className="mt-0.5 h-4 w-4 flex-none rounded border-line accent-brand"
             />
-            Keep me signed in on this device for {TRUSTED_DEVICE_DAYS} days
+            <span>
+              <span className="font-medium text-foreground">
+                Keep me signed in on this device for {TRUSTED_DEVICE_DAYS} days
+              </span>
+              <span className="block text-xs text-ink-soft">Not on a shared computer.</span>
+            </span>
           </label>
 
           <Button
