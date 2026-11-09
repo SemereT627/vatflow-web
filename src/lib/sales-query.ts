@@ -120,22 +120,14 @@ export const SALE_ROW_COLUMNS =
 /** Pass to invalidateQueries after any mutation — ["sales"] prefix-matches both the list and stats keys. */
 export const SALES_QUERY_PREFIX = ["sales"] as const;
 
-export async function fetchSalesPage(
-  shopId: string,
-  page: number,
-  search: string = "",
-  pageSize: number = SALES_PAGE_SIZE,
-  review: ReviewFilter = "all",
-  period: string = "",
-  series: ReceiptSeries = "",
-): Promise<{ rows: SaleRow[] }> {
-  const supabase = createClient();
-  const from = (page - 1) * pageSize;
-  const to = from + pageSize - 1;
+type SalesFilters = { search?: string; review?: ReviewFilter; period?: string; series?: ReceiptSeries };
 
-  let query = supabase
+/** One shop's sales with the Sales page filters applied — shared by the list, its count and the totals. */
+function filteredSales(shopId: string, columns: string, filters: SalesFilters, head = false) {
+  const { search = "", review = "all", period = "", series = "" } = filters;
+  let query = createClient()
     .from("sales")
-    .select(SALE_ROW_COLUMNS)
+    .select(columns, head ? { count: "exact", head: true } : undefined)
     .eq("shop_id", shopId);
   if (review !== "all") query = query.eq("review_status", review);
   const range = periodRange(period);
@@ -150,8 +142,22 @@ export async function fetchSalesPage(
       `buyer_name.ilike.${pattern},buyer_tin.ilike.${pattern},vat_receipt_number.ilike.${pattern},mrc_number.ilike.${pattern}`,
     );
   }
+  return query;
+}
 
-  const { data, error } = await query
+export async function fetchSalesPage(
+  shopId: string,
+  page: number,
+  search: string = "",
+  pageSize: number = SALES_PAGE_SIZE,
+  review: ReviewFilter = "all",
+  period: string = "",
+  series: ReceiptSeries = "",
+): Promise<{ rows: SaleRow[] }> {
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  const { data, error } = await filteredSales(shopId, SALE_ROW_COLUMNS, { search, review, period, series })
     .order("sale_date", { ascending: false })
     // Same-width numbers sort as text = numeric order, so a receipt entered late
     // still lands in sequence. shortcut: machine (8-digit) and handwritten (7-digit)
@@ -164,36 +170,28 @@ export async function fetchSalesPage(
   return { rows: (data ?? []) as unknown as SaleRow[] };
 }
 
-export function periodTotalsKey(shopId: string, period: string) {
-  return ["sales", "period-totals", shopId, period] as const;
+export function periodTotalsKey(shopId: string, filters: SalesFilters) {
+  return ["sales", "period-totals", shopId, filters] as const;
 }
 
 /**
- * Month totals over every non-voided receipt in an Ethiopian month — the same
- * set the Ministry export covers, whatever list filter is active.
+ * Totals of the receipts the Sales page filters currently match, voided ones
+ * excluded — with only a month picked, the same set the Ministry export covers.
  */
 export async function fetchPeriodTotals(
   shopId: string,
-  period: string,
+  filters: SalesFilters,
 ): Promise<{ receipts: number; beforeVat: number; vat: number; afterVat: number }> {
-  const range = periodRange(period);
   const totals = { receipts: 0, beforeVat: 0, vat: 0, afterVat: 0 };
-  if (!range) return totals;
-
-  const supabase = createClient();
   const PAGE = 1000; // PostgREST's default row cap per request
   for (let from = 0; ; from += PAGE) {
-    const { data, error } = await supabase
-      .from("sales")
-      .select("id, sale_items(total_value, vat, value_after_vat)")
-      .eq("shop_id", shopId)
+    const { data, error } = await filteredSales(shopId, "id, sale_items(total_value, vat, value_after_vat)", filters)
       .is("voided_at", null)
-      .gte("sale_date", range.start)
-      .lte("sale_date", range.end)
       .order("id")
       .range(from, from + PAGE - 1);
     if (error) throw new Error(error.message);
-    for (const sale of data ?? []) {
+    const rows = (data ?? []) as unknown as { sale_items: { total_value: number; vat: number; value_after_vat: number }[] }[];
+    for (const sale of rows) {
       totals.receipts += 1;
       for (const item of sale.sale_items) {
         totals.beforeVat += item.total_value;
@@ -201,7 +199,7 @@ export async function fetchPeriodTotals(
         totals.afterVat += item.value_after_vat;
       }
     }
-    if (!data || data.length < PAGE) return totals;
+    if (rows.length < PAGE) return totals;
   }
 }
 
@@ -212,26 +210,7 @@ export async function fetchSalesStats(
   period: string = "",
   series: ReceiptSeries = "",
 ): Promise<{ total: number }> {
-  const supabase = createClient();
-  let query = supabase
-    .from("sales")
-    .select("id", { count: "exact", head: true })
-    .eq("shop_id", shopId);
-  if (review !== "all") query = query.eq("review_status", review);
-  const range = periodRange(period);
-  if (range) query = query.gte("sale_date", range.start).lte("sale_date", range.end);
-  if (series === "machine") query = query.like("vat_receipt_number", MACHINE_PATTERN);
-  if (series === "handwritten") query = query.not("vat_receipt_number", "like", MACHINE_PATTERN);
-
-  const term = search.trim();
-  if (term) {
-    const pattern = `%${escapeLike(term)}%`;
-    query = query.or(
-      `buyer_name.ilike.${pattern},buyer_tin.ilike.${pattern},vat_receipt_number.ilike.${pattern},mrc_number.ilike.${pattern}`,
-    );
-  }
-
-  const { count } = await query;
+  const { count } = await filteredSales(shopId, "id", { search, review, period, series }, true);
   return { total: count ?? 0 };
 }
 

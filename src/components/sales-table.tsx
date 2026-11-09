@@ -134,8 +134,8 @@ export function SalesTable({
   });
 
   const periodTotals = useQuery({
-    queryKey: periodTotalsKey(shopId, period),
-    queryFn: () => fetchPeriodTotals(shopId, period),
+    queryKey: periodTotalsKey(shopId, { search: urlSearch, review, period, series }),
+    queryFn: () => fetchPeriodTotals(shopId, { search: urlSearch, review, period, series }),
     enabled: !!period,
   });
 
@@ -251,7 +251,12 @@ export function SalesTable({
       {periodMonth > 0 && (
         <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1 border-b border-line bg-surface-2 px-4 py-2.5 text-xs text-ink-soft">
           <span className="font-bold text-foreground">
-            {ethiopianMonthName(periodMonth)} {periodYear} total
+            {ethiopianMonthName(periodMonth)} {periodYear}
+            {series === "machine" && " · Machine"}
+            {series === "handwritten" && " · Handwritten"}
+            {review === "pending" && " · Pending review"}
+            {review === "rejected" && " · Rejected"}
+            {urlSearch && ` · “${urlSearch}”`} total
           </span>
           {periodTotals.data ? (
             <>
