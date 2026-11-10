@@ -29,6 +29,12 @@ sellers record sales offline in the field and sync them here.
 - **Mobile sync** — `/api/products` and `/api/sales/sync` authenticate the mobile app via
   a bearer token and keep both clients' VAT math and RLS scoping in one place.
 
+- **Backups** — Vercel Cron (`vercel.json`, daily 00:00 UTC = 03:00 Addis) calls
+  `/api/cron/backup` (`src/lib/backup.ts`): every table as one gzipped JSON in a private
+  Vercel Blob store (`backups/`, kept 30 days), read back and row-count checked. It holds
+  every shop's data, so it's only in the Vercel dashboard (Storage → Blob), not the app.
+  Auth accounts aren't included. Add new tables to `BACKUP_TABLES`, parents first.
+
 ## Tech stack
 
 Next.js 16 (App Router, Turbopack) · React 19 · Supabase (Postgres + Auth) · Tailwind CSS 4
@@ -53,6 +59,8 @@ Next.js 16 (App Router, Turbopack) · React 19 · Supabase (Postgres + Auth) · 
    | `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase project URL |
    | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon/public key |
    | `SUPABASE_SERVICE_ROLE_KEY` | Service-role key — server-only, needed to create seller accounts. Never expose to the client. |
+   | `BLOB_READ_WRITE_TOKEN` | Private Vercel Blob store for nightly backups — set by connecting the store to the project in Vercel. Production only. |
+   | `CRON_SECRET` | Random secret Vercel Cron sends as a Bearer token to `/api/cron/backup`. Production only. |
 
 3. Apply the schema in `supabase/schema.sql` to your Supabase project (SQL editor or CLI).
 
