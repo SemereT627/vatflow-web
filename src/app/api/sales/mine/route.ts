@@ -25,7 +25,10 @@ export async function GET(request: NextRequest) {
     .not("client_id", "is", null)
     .order("created_at", { ascending: false })
     .limit(500);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("sales/mine/route.ts failed", error);
+    return NextResponse.json({ error: "Couldn't load receipts." }, { status: 500 });
+  }
 
   return NextResponse.json({
     data: (data ?? []).map((s) => ({

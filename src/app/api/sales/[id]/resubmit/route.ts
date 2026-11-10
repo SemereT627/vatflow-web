@@ -45,7 +45,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       unit_price: i.unitPrice,
     })),
   });
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) {
+    // P0001 = a check in resubmit_sale; its message is written for people.
+    if (error.code !== "P0001") console.error("resubmit_sale failed", id, error);
+    return NextResponse.json(
+      { error: error.code === "P0001" ? error.message : "Couldn't resubmit this receipt." },
+      { status: 400 },
+    );
+  }
 
   return NextResponse.json({ ok: true });
 }

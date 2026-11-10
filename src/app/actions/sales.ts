@@ -2,14 +2,13 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/session";
-import { calcLine } from "@/lib/vat";
 import type { NewSaleInput } from "@/lib/types";
 import { revalidatePath } from "next/cache";
 
 export async function createSale(input: NewSaleInput) {
   const session = await getCurrentProfile();
   if (!session) throw new Error("Not signed in.");
-  const { profile, shop } = session;
+  // shop/seller come from the session inside create_sale.
 
   if (input.items.length === 0) {
     throw new Error("Add at least one item.");
@@ -20,52 +19,36 @@ export async function createSale(input: NewSaleInput) {
 
   const supabase = await createClient();
 
-  const { data: sale, error: saleError } = await supabase
-    .from("sales")
-    .insert({
-      shop_id: shop.id,
-      seller_id: profile.id,
-      vat_category: input.vat_category,
-      type_of_sale: input.type_of_sale,
-      buyer_tin: input.buyer_tin || null,
-      buyer_name: input.buyer_name || null,
-      sale_date: input.sale_date,
-      mrc_number: input.mrc_number || null,
-      vat_receipt_number: input.vat_receipt_number,
-    })
-    .select()
-    .single();
-
-  if (saleError) {
-    if (saleError.code === "23505" && saleError.message.includes("vat_receipt_number")) {
-      throw new Error(`Receipt #${input.vat_receipt_number} is already recorded.`);
-    }
-    throw new Error(saleError.message);
-  }
-
-  const rows = input.items.map((item) => {
-    const totals = calcLine(item.quantity, item.unit_price, shop.vat_rate);
-    return {
-      sale_id: sale.id,
+  // create_sale (migration 0003) checks the shop/products, computes VAT and
+  // writes the receipt + lines in one transaction.
+  const { data: saleId, error } = await supabase.rpc("create_sale", {
+    p_client_id: null,
+    p_vat_category: input.vat_category,
+    p_type_of_sale: input.type_of_sale,
+    p_buyer_tin: input.buyer_tin || null,
+    p_buyer_name: input.buyer_name || null,
+    p_sale_date: input.sale_date,
+    p_mrc_number: input.mrc_number || null,
+    p_vat_receipt_number: input.vat_receipt_number,
+    p_items: input.items.map((item) => ({
       product_id: item.product_id,
       description: item.description,
       unit_of_measure: item.unit_of_measure,
       quantity: item.quantity,
       unit_price: item.unit_price,
-      total_value: totals.totalValue,
-      vat: totals.vat,
-      value_after_vat: totals.valueAfterVat,
-    };
+    })),
   });
 
-  const { error: itemsError } = await supabase.from("sale_items").insert(rows);
-  if (itemsError) {
-    await supabase.from("sales").delete().eq("id", sale.id);
-    throw new Error(itemsError.message);
+  if (error) {
+    if (error.code === "23505" && error.message.includes("vat_receipt_number")) {
+      throw new Error(`Receipt #${input.vat_receipt_number} is already recorded.`);
+    }
+    // P0001 = a check in create_sale; its message is written for people.
+    throw new Error(error.code === "P0001" ? error.message : "Couldn't save the sale.");
   }
 
   revalidatePath("/sales");
-  return sale.id;
+  return saleId as string;
 }
 
 /** Quantity, price, VAT category, and receipt number stay locked once recorded, since

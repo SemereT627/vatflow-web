@@ -24,7 +24,10 @@ export async function GET(request: NextRequest) {
     .eq("is_active", true)
     .order("name");
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("products/route.ts failed", error);
+    return NextResponse.json({ error: "Couldn't load products." }, { status: 500 });
+  }
 
   const data = (products ?? []).map((p) => ({
     id: p.id,

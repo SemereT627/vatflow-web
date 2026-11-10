@@ -89,7 +89,9 @@ export async function proxy(request: NextRequest) {
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
-      maxAge: INACTIVITY_LIMIT_MS / 1000,
+      // Must outlive the idle limit: the stale timestamp is what proves the
+      // user was away. A cookie that expires at the limit is simply gone.
+      maxAge: 30 * 24 * 60 * 60,
     });
   }
 
