@@ -47,7 +47,7 @@ export default async function VoidedSalesPage({
   return (
     <div className="flex min-h-0 flex-1 flex-col px-4 py-6 sm:px-6 md:px-10">
       <div>
-        <h1 className="text-xl font-bold">Voided sales</h1>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Voided sales</h1>
         <p className="mt-0.5 text-sm text-ink-soft">
           {total} voided sale{total === 1 ? "" : "s"} — kept for audit, excluded from totals and exports.
         </p>

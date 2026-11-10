@@ -61,7 +61,7 @@ export default async function AdminProductsPage({
     <div className="flex min-h-0 flex-1 flex-col px-4 py-6 sm:px-6 md:px-10">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold">Products</h1>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Products</h1>
           <p className="mt-0.5 text-sm text-ink-soft">
             {totalCount ?? 0} product{(totalCount ?? 0) === 1 ? "" : "s"} ·{" "}
             {activeCount ?? 0} active

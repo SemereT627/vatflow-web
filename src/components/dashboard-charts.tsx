@@ -221,10 +221,10 @@ export function ProductBars({ products }: { products: ProductTotal[] }) {
       {products.map((p) => (
         <li key={p.name}>
           <div className="flex items-baseline justify-between gap-3">
-            <span className="min-w-0 truncate text-[13px] font-semibold" title={p.name}>
+            <span className="min-w-0 truncate text-sm font-semibold" title={p.name}>
               {p.name}
             </span>
-            <span className="flex-none text-[12.5px] tabular-nums">
+            <span className="flex-none text-sm tabular-nums">
               <span className="font-semibold">{formatMoney(p.value)} ETB</span>
               <span className="ml-1.5 text-ink-faint">{Math.round((p.value / total) * 100)}%</span>
             </span>

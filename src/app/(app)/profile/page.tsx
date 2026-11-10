@@ -18,7 +18,7 @@ export default async function ProfilePage() {
       {/* Centred column, matching Kiln's profile page */}
       <div className="mx-auto max-w-4xl">
         <div className="mb-6">
-          <h1 className="text-xl font-bold">Profile</h1>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Profile</h1>
           <p className="mt-0.5 text-sm text-ink-soft">
             Your account, password, two-step sign-in and sessions.
           </p>

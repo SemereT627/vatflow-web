@@ -28,7 +28,7 @@ export default async function AdminReportsPage() {
     <div className="px-4 py-6 sm:px-6 md:px-10">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold">Monthly journal</h1>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Monthly journal</h1>
           <p className="text-sm text-ink-soft">
             Download VAT receipts in the Ministry of Revenue XLSX format.
           </p>

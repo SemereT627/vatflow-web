@@ -54,7 +54,7 @@ export default async function BackupsPage() {
     <div className="px-4 py-6 sm:px-6 md:px-10">
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold">Backups</h1>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Backups</h1>
           <p className="mt-0.5 max-w-xl text-sm text-ink-soft">
             Every night at 03:00 every table is saved to a private Vercel Blob store, outside Supabase. Kept 30 days.
             Holds every shop&apos;s data, so only VatFlow owners see this page. Login accounts aren&apos;t included.

@@ -36,7 +36,7 @@ function DropdownMenuItem({
   return (
     <DropdownMenuPrimitive.Item
       className={cn(
-        "flex cursor-pointer select-none items-center gap-2 rounded-md px-2.5 py-2 text-[13px] font-semibold outline-none transition-colors data-[highlighted]:bg-surface-2 [&_svg]:h-3.5 [&_svg]:w-3.5 [&_svg]:flex-none",
+        "flex cursor-pointer select-none items-center gap-2 rounded-md px-2.5 py-2 text-sm font-medium outline-none transition-colors data-[highlighted]:bg-surface-2 [&_svg]:h-3.5 [&_svg]:w-3.5 [&_svg]:flex-none",
         variant === "destructive" ? "text-critical" : "text-foreground",
         className
       )}

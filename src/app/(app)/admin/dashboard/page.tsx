@@ -146,8 +146,8 @@ export default async function AdminDashboardPage({
     <div className="px-6 py-6 md:px-10">
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold">Dashboard</h1>
-          <p className="mt-0.5 text-[13px] text-ink-soft">
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Dashboard</h1>
+          <p className="mt-0.5 text-sm text-ink-soft">
             Last {rangeDays} days · {gregLabel(start, false)} – {gregLabel(today)} ·{" "}
             {formatEthiopianDate(start)} – {formatEthiopianDate(today)} E.C.
           </p>
@@ -185,7 +185,7 @@ export default async function AdminDashboardPage({
               key={k.label}
               className="rounded-xl border border-line bg-surface p-4 shadow-sm"
             >
-              <div className="text-[13px] font-medium text-ink-soft">{k.label}</div>
+              <div className="text-sm font-medium text-ink-soft">{k.label}</div>
               <div className="mt-1 truncate text-2xl font-semibold tracking-tight tabular-nums">
                 {k.value}
               </div>
@@ -292,7 +292,7 @@ export default async function AdminDashboardPage({
           </Link>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[800px] text-[12.5px]">
+          <table className="w-full min-w-[800px] text-sm">
             <thead>
               <tr className="border-b border-line text-left text-[10.5px] font-bold uppercase tracking-wide text-ink-faint">
                 <th className="px-4 py-2.5">Date</th>
@@ -400,7 +400,7 @@ export default async function AdminDashboardPage({
                   .toUpperCase()}
               </div>
               <div className="min-w-0 flex-1">
-                <div className="text-[13px] font-bold">{s.name}</div>
+                <div className="text-sm font-bold">{s.name}</div>
                 <div className="text-[11.5px] text-ink-soft">
                   {formatNumber(s.receipts)} receipts
                 </div>
@@ -411,7 +411,7 @@ export default async function AdminDashboardPage({
                   />
                 </div>
               </div>
-              <div className="num flex-none text-[13px] font-semibold">
+              <div className="num flex-none text-sm font-semibold">
                 {formatMoney(s.value)} ETB
               </div>
             </div>
@@ -443,7 +443,7 @@ function SplitRow({
 }) {
   const pct = totalValue ? Math.round((bucket.value / totalValue) * 100) : 0;
   return (
-    <div className="flex items-center justify-between gap-3 text-[12.5px]">
+    <div className="flex items-center justify-between gap-3 text-sm">
       <span className="flex min-w-0 items-center gap-1.5 font-semibold text-ink-soft">
         <span className="h-2 w-2 flex-none rounded-sm" style={{ background: color }} />
         <span className="truncate">{label}</span>

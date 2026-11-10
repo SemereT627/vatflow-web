@@ -101,7 +101,7 @@ export function SaleDetailDialog({
             </div>
 
             <div className="min-w-0 overflow-x-auto rounded-lg border border-line">
-              <table className="w-full min-w-120 text-[12.5px]">
+              <table className="w-full min-w-120 text-sm">
                 <thead className="border-b border-line bg-surface-2">
                   <tr className="text-left text-[10.5px] font-bold uppercase tracking-wide text-ink-faint">
                     <th className="px-3 py-2">Item</th>

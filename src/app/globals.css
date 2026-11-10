@@ -2,19 +2,20 @@
 @plugin "tailwindcss-animate";
 
 :root {
-  --background: #0f1613;
-  --foreground: #edeae0;
-  --surface: #171f1b;
-  --surface-2: #1e2723;
-  --line: #2a332d;
-  --ink-soft: #9ca79e;
-  --ink-faint: #6b756e;
+  /* Neutral near-black like Kiln; green is the only accent. */
+  --background: #0a0a0a;
+  --foreground: #fafafa;
+  --surface: #171717;
+  --surface-2: #262626;
+  --line: rgb(255 255 255 / 0.1);
+  --ink-soft: #a1a1a1;
+  --ink-faint: #737373;
   --brand: #55baa5;
   --brand-ink: #08130f;
-  --accent: #e0a648;
-  --accent-ink: #241505;
-  --s1: #199e70;
-  --s2: #c98500;
+  --accent: #55baa5;
+  --accent-ink: #08130f;
+  --s1: #55baa5;
+  --s2: #a7e3d4;
   --s3: #3987e5;
   --s4: #d9663f;
   --good: #3fbe55;
