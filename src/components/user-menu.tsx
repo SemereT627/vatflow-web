@@ -43,17 +43,17 @@ export function UserMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        className="flex w-full items-center gap-2.5 rounded-xl border border-line bg-background p-3 text-left outline-none transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-brand data-[state=open]:bg-surface-2"
+        className="flex w-full items-center gap-2.5 rounded-xl border border-line bg-background p-3 text-left group-data-[collapsed=true]/sidebar:justify-center group-data-[collapsed=true]/sidebar:p-1.5 outline-none transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-brand data-[state=open]:bg-surface-2"
         aria-label={`Account menu for ${fullName}`}
       >
         <div className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-surface-2 font-heading text-xs font-bold">
           {initials}
         </div>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 group-data-[collapsed=true]/sidebar:hidden">
           <div className="truncate text-xs font-bold">{fullName}</div>
           <div className="text-[11px] capitalize text-ink-soft">{role}</div>
         </div>
-        <ChevronsUpDown className="h-4 w-4 flex-none text-ink-soft" />
+        <ChevronsUpDown className="h-4 w-4 flex-none text-ink-soft group-data-[collapsed=true]/sidebar:hidden" />
       </DropdownMenuTrigger>
       <DropdownMenuContent
         side="top"

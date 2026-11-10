@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { cookies } from "next/headers";
 import { getCurrentProfile } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { UserMenu } from "@/components/user-menu";
@@ -6,6 +7,8 @@ import { KilnLink } from "@/components/kiln-link";
 import { NavLinks, type NavGroup } from "@/components/nav-links";
 import { MobileNav } from "@/components/mobile-nav";
 import { isOwner } from "@/lib/owner";
+import { SidebarToggle } from "@/components/sidebar-toggle";
+import { SIDEBAR_COOKIE } from "@/lib/sidebar";
 
 const ICONS: Record<string, React.ReactNode> = {
   Dashboard: (
@@ -97,19 +100,25 @@ export async function Sidebar() {
     items: g.items.map((l) => ({ ...l, icon: ICONS[l.label] })),
   }));
 
+  const collapsed = (await cookies()).get(SIDEBAR_COOKIE)?.value === "1";
+
   return (
     <>
       <MobileNav groups={groups} fullName={session.profile.full_name} role={session.profile.role} />
 
-      <aside className="hidden flex-none flex-col gap-6 overflow-y-auto border-line bg-surface px-4 py-6 md:sticky md:top-0 md:flex md:h-screen md:w-56 md:border-r">
-        <div className="flex items-center gap-2.5 px-1">
-          <div className="relative h-8 w-8 flex-none">
+      <aside
+        data-collapsed={collapsed}
+        className="group/sidebar hidden flex-none flex-col gap-6 overflow-y-auto overflow-x-hidden border-line bg-surface px-4 py-6 transition-[width] md:sticky md:top-0 md:flex md:h-screen md:w-56 md:border-r data-[collapsed=true]:px-3 md:data-[collapsed=true]:w-[4.5rem]"
+      >
+        <div className="flex items-center gap-2.5 px-1 group-data-[collapsed=true]/sidebar:flex-col-reverse group-data-[collapsed=true]/sidebar:gap-3 group-data-[collapsed=true]/sidebar:px-0">
+          <div className="relative h-8 w-8 flex-none group-data-[collapsed=true]/sidebar:h-6 group-data-[collapsed=true]/sidebar:w-6">
             <Image src="/brand/mark.png" alt="VatFlow" fill sizes="32px" className="object-contain" />
           </div>
-          <div>
+          <div className="min-w-0 flex-1 group-data-[collapsed=true]/sidebar:hidden">
             <div className="font-heading text-base font-bold leading-none">VatFlow</div>
             <div className="text-[11px] text-ink-soft">Ledger &amp; VAT desk</div>
           </div>
+          <SidebarToggle />
         </div>
 
         <NavLinks groups={groups} />

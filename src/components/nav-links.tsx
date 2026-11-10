@@ -16,7 +16,7 @@ export function NavLinks({ groups }: { groups: NavGroup[] }) {
       {groups.map((group, i) => (
         <div key={group.label ?? `top-${i}`} className={i > 0 ? "mt-4 border-t border-line pt-4" : ""}>
           {group.label && (
-            <div className="mb-1.5 px-2.5 text-[11px] font-bold uppercase tracking-wide text-ink-faint">
+            <div className="mb-1 px-2.5 text-xs font-medium text-ink-faint group-data-[collapsed=true]/sidebar:hidden">
               {group.label}
             </div>
           )}
@@ -27,16 +27,18 @@ export function NavLinks({ groups }: { groups: NavGroup[] }) {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`flex flex-none items-center gap-2.5 rounded-r-lg border-l-2 py-2 pl-2 pr-2.5 text-[13px] font-semibold transition-colors ${
+                  title={link.label}
+                  className={`relative flex flex-none items-center gap-2.5 rounded-r-lg border-l-2 py-2 pl-2 pr-2.5 text-sm transition-colors group-data-[collapsed=true]/sidebar:justify-center group-data-[collapsed=true]/sidebar:px-0 ${
                     active
-                      ? "border-brand bg-[color-mix(in_srgb,var(--color-brand)_14%,transparent)] text-brand"
-                      : "border-transparent text-ink-soft hover:bg-surface-2 hover:text-foreground"
+                      ? "border-brand bg-[color-mix(in_srgb,var(--color-brand)_14%,transparent)] font-semibold text-brand"
+                      : "border-transparent font-medium text-ink-soft hover:bg-surface-2 hover:text-foreground"
                   }`}
                 >
                   <span className="h-[17px] w-[17px] flex-none [&>svg]:h-full [&>svg]:w-full">{link.icon}</span>
-                  <span>{link.label}</span>
+                  <span className="group-data-[collapsed=true]/sidebar:hidden">{link.label}</span>
                   {!!link.badge && (
-                    <span className="ml-auto rounded-full bg-warn-bg px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-warn">
+                    // Collapsed: shrinks to a dot on the icon.
+                    <span className="ml-auto rounded-full bg-warn-bg px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-warn group-data-[collapsed=true]/sidebar:absolute group-data-[collapsed=true]/sidebar:right-1 group-data-[collapsed=true]/sidebar:top-1 group-data-[collapsed=true]/sidebar:h-2 group-data-[collapsed=true]/sidebar:w-2 group-data-[collapsed=true]/sidebar:bg-warn group-data-[collapsed=true]/sidebar:p-0 group-data-[collapsed=true]/sidebar:text-[0px]">
                       {link.badge}
                     </span>
                   )}

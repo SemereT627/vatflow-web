@@ -13,13 +13,14 @@ export function KilnLink() {
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Kiln (opens in a new tab)"
-      className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-semibold text-ink-soft transition-colors hover:bg-surface-2 hover:text-foreground focus-visible:outline-2 focus-visible:outline-brand"
+      title="Kiln"
+      className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium group-data-[collapsed=true]/sidebar:justify-center group-data-[collapsed=true]/sidebar:px-0 text-ink-soft transition-colors hover:bg-surface-2 hover:text-foreground focus-visible:outline-2 focus-visible:outline-brand"
     >
       <span className="relative h-[17px] w-[17px] flex-none">
         <Image src="/brand/kiln-mark.png" alt="" fill sizes="17px" className="object-contain" />
       </span>
-      <span className="flex-1">Kiln</span>
-      <ArrowUpRight className="h-3.5 w-3.5 flex-none text-ink-faint" />
+      <span className="flex-1 group-data-[collapsed=true]/sidebar:hidden">Kiln</span>
+      <ArrowUpRight className="h-3.5 w-3.5 flex-none text-ink-faint group-data-[collapsed=true]/sidebar:hidden" />
     </a>
   );
 }
