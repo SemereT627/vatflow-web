@@ -51,7 +51,7 @@ export default async function BackupsPage() {
   const stale = !loadError && isStale(latest);
 
   return (
-    <div className="px-4 py-6 sm:px-6 md:px-10">
+    <div className="p-4">
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Backups</h1>
@@ -76,7 +76,7 @@ export default async function BackupsPage() {
         </p>
       )}
 
-      <div className="rounded-xl border border-line bg-surface shadow-sm">
+      <div className="rounded-2xl border border-line bg-surface shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>

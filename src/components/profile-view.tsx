@@ -76,7 +76,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="grid gap-4 rounded-xl border border-line bg-surface p-5 shadow-sm md:grid-cols-[minmax(0,14rem)_minmax(0,1fr)] md:gap-8">
+    <section className="grid gap-4 rounded-2xl border border-line bg-surface p-5 shadow-sm md:grid-cols-[minmax(0,14rem)_minmax(0,1fr)] md:gap-8">
       <div>
         <div className="flex items-center gap-2">
           <Icon className="h-4 w-4 text-ink-soft" />
@@ -214,7 +214,7 @@ export function ProfileView({
   return (
     <div className="space-y-4">
       {/* Account summary */}
-      <div className="flex flex-wrap items-center gap-4 rounded-xl border border-line bg-surface p-5 shadow-sm">
+      <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-line bg-surface p-5 shadow-sm">
         <div className="flex h-12 w-12 flex-none items-center justify-center rounded-full bg-surface-2 font-heading text-base font-bold">
           {initials}
         </div>

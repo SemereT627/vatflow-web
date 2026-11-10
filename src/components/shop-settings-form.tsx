@@ -63,7 +63,7 @@ export function ShopSettingsForm({ shop }: { shop: Shop }) {
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className="max-w-lg space-y-4 rounded-xl border border-line bg-surface p-5 shadow-sm"
+        className="max-w-lg space-y-4 rounded-2xl border border-line bg-surface p-5 shadow-sm"
       >
         <FormField
           control={form.control}

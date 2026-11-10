@@ -7,7 +7,7 @@ export async function Topbar() {
   if (!session) return null;
 
   return (
-    <header className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-line bg-surface/95 px-6 py-3 backdrop-blur-sm md:px-10">
+    <header className="sticky top-0 z-10 flex h-14 flex-none items-center justify-between gap-3 border-b border-line bg-background/80 px-4 backdrop-blur-md">
       <div className="min-w-0">
         <div className="truncate text-sm font-bold">{session.shop.business_name}</div>
         <div className="text-[11px] text-ink-soft">{formatEthiopianDate(new Date())} E.C.</div>

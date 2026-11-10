@@ -108,7 +108,7 @@ export async function Sidebar() {
 
       <aside
         data-collapsed={collapsed}
-        className="group/sidebar hidden flex-none flex-col gap-6 overflow-y-auto overflow-x-hidden border-line bg-surface px-4 py-6 transition-[width] md:sticky md:top-0 md:flex md:h-screen md:w-56 md:border-r data-[collapsed=true]:px-3 md:data-[collapsed=true]:w-[4.5rem]"
+        className="group/sidebar hidden flex-none flex-col gap-6 overflow-y-auto overflow-x-hidden border-line bg-surface px-4 py-6 transition-[width] md:sticky md:top-0 md:flex md:h-screen md:w-64 md:border-r data-[collapsed=true]:px-3 md:data-[collapsed=true]:w-[4.5rem]"
       >
         <div className="flex items-center gap-2.5 px-1 group-data-[collapsed=true]/sidebar:flex-col-reverse group-data-[collapsed=true]/sidebar:gap-3 group-data-[collapsed=true]/sidebar:px-0">
           <div className="relative h-8 w-8 flex-none group-data-[collapsed=true]/sidebar:h-6 group-data-[collapsed=true]/sidebar:w-6">

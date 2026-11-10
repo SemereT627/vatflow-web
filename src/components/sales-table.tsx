@@ -155,7 +155,7 @@ export function SalesTable({
   }, [stats.isSuccess, page, totalPages]);
 
   return (
-    <div className="mt-6 flex min-h-0 flex-1 flex-col rounded-xl border border-line bg-surface shadow-sm">
+    <div className="mt-6 flex min-h-0 flex-1 flex-col rounded-2xl border border-line bg-surface shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3">
         {isAdmin && (
           <div className="flex gap-0.5 rounded-lg border border-line bg-background p-0.5" role="tablist" aria-label="Review status">

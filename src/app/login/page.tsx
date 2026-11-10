@@ -313,7 +313,7 @@ function FlowCard({
 }) {
   return (
     <div
-      className={`absolute w-64 rounded-xl border border-line bg-surface/90 p-4 shadow-lg backdrop-blur-sm ${className ?? ""}`}
+      className={`absolute w-64 rounded-2xl border border-line bg-surface/90 p-4 shadow-lg backdrop-blur-sm ${className ?? ""}`}
     >
       <div className="flex items-center gap-2">
         <span

@@ -143,7 +143,7 @@ export default async function AdminDashboardPage({
   ];
 
   return (
-    <div className="px-6 py-6 md:px-10">
+    <div className="p-4">
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Dashboard</h1>
@@ -183,7 +183,7 @@ export default async function AdminDashboardPage({
           return (
             <div
               key={k.label}
-              className="rounded-xl border border-line bg-surface p-4 shadow-sm"
+              className="rounded-2xl border border-line bg-surface p-4 shadow-sm"
             >
               <div className="text-sm font-medium text-ink-soft">{k.label}</div>
               <div className="mt-1 truncate text-2xl font-semibold tracking-tight tabular-nums">
@@ -216,7 +216,7 @@ export default async function AdminDashboardPage({
       </div>
 
       <div className="mb-3 grid gap-3 lg:grid-cols-[1.6fr_1fr]">
-        <section className="flex h-full min-w-0 flex-col rounded-xl border border-line bg-surface p-4 shadow-sm">
+        <section className="flex h-full min-w-0 flex-col rounded-2xl border border-line bg-surface p-4 shadow-sm">
           <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
             <div>
               <h2 className="text-sm font-bold">Sales &amp; VAT by day</h2>
@@ -253,7 +253,7 @@ export default async function AdminDashboardPage({
           )}
         </section>
 
-        <section className="rounded-xl border border-line bg-surface p-4 shadow-sm">
+        <section className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
           <h2 className="text-sm font-bold">Top products</h2>
           <p className="mb-3 text-[11.5px] text-ink-soft">By sales before VAT, share of the top five</p>
           {products.length > 0 ? (
@@ -279,7 +279,7 @@ export default async function AdminDashboardPage({
         </section>
       </div>
 
-      <section className="mb-3 rounded-xl border border-line bg-surface shadow-sm">
+      <section className="mb-3 rounded-2xl border border-line bg-surface shadow-sm">
         <div className="flex items-start justify-between gap-3 p-4 pb-0">
           <div>
             <h2 className="text-sm font-bold">Recent sales</h2>
@@ -386,7 +386,7 @@ export default async function AdminDashboardPage({
         </div>
       </section>
 
-      <section className="rounded-xl border border-line bg-surface p-4 shadow-sm">
+      <section className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
         <h2 className="mb-3 text-sm font-bold">Seller activity</h2>
         <div className="divide-y divide-line">
           {sellers.map((s) => (
