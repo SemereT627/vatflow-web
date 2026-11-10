@@ -17,14 +17,33 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [resetStatus, setResetStatus] = useState<string | null>(null);
   const [passwordDone, setPasswordDone] = useState(false);
+  // Arrived from a password-reset email: after the code step, set a new password.
+  const [resetting, setResetting] = useState(false);
+  const [choosingPassword, setChoosingPassword] = useState(false);
 
-  // Password already accepted (e.g. the page was reloaded mid-sign-in): go straight to the code.
   useEffect(() => {
-    createClient()
-      .auth.mfa.getAuthenticatorAssuranceLevel()
-      .then(({ data }) => {
-        if (data?.currentLevel === "aal1") setPasswordDone(true);
+    const supabase = createClient();
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
+    if (params.get("reset") === "1" && code) {
+      // Drop the one-time code from the address bar either way.
+      window.history.replaceState(null, "", "/login");
+      supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
+        if (error) {
+          setError(
+            "This reset link has expired or was opened in a different browser. Request a new one from this browser.",
+          );
+          return;
+        }
+        setResetting(true);
+        setPasswordDone(true);
       });
+      return;
+    }
+    // Password already accepted (e.g. the page was reloaded mid-sign-in): go straight to the code.
+    supabase.auth.mfa.getAuthenticatorAssuranceLevel().then(({ data }) => {
+      if (data?.currentLevel === "aal1") setPasswordDone(true);
+    });
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -53,7 +72,9 @@ export default function LoginPage() {
     setError(null);
     setResetStatus(null);
     const supabase = createClient();
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/login?reset=1`,
+    });
     setResetStatus(error ? error.message : "Password reset link sent — check your inbox.");
   }
 
@@ -72,8 +93,10 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {passwordDone ? (
-            <MfaStep />
+          {choosingPassword ? (
+            <NewPasswordStep />
+          ) : passwordDone ? (
+            <MfaStep onVerified={resetting ? () => setChoosingPassword(true) : undefined} />
           ) : (
             <>
             <h1 className="text-2xl font-bold">Welcome back</h1>
@@ -196,6 +219,82 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+const MIN_PASSWORD = 8;
+
+/** Last step of a password reset — the session is already through the code step (aal2). */
+function NewPasswordStep() {
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (password !== confirm) {
+      setError("Passwords don't match.");
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    const { error } = await createClient().auth.updateUser({ password });
+    if (error) {
+      setError(error.message);
+      setSaving(false);
+      return;
+    }
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- full load so the proxy sees the session
+    window.location.assign("/");
+  }
+
+  return (
+    <>
+      <h1 className="text-2xl font-bold">Set a new password</h1>
+      <p className="mt-1.5 text-sm text-ink-soft">At least {MIN_PASSWORD} characters.</p>
+
+      <form onSubmit={handleSubmit} className="mt-6 space-y-5">
+        <div className="space-y-1.5">
+          <Label htmlFor="new-password">New password</Label>
+          <Input
+            id="new-password"
+            type="password"
+            autoComplete="new-password"
+            minLength={MIN_PASSWORD}
+            required
+            autoFocus
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="h-10"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="confirm-password">Confirm new password</Label>
+          <Input
+            id="confirm-password"
+            type="password"
+            autoComplete="new-password"
+            minLength={MIN_PASSWORD}
+            required
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            className="h-10"
+          />
+        </div>
+
+        {error && (
+          <p role="alert" className="text-sm font-medium text-critical">
+            {error}
+          </p>
+        )}
+
+        <Button type="submit" disabled={saving} className="h-10 w-full">
+          {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+          {saving ? "Saving…" : "Save and continue"}
+        </Button>
+      </form>
+    </>
   );
 }
 

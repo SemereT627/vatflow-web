@@ -20,7 +20,7 @@ type Mode =
  * First visit: scan a QR code into an authenticator app and confirm a code.
  * Later visits: enter the current code.
  */
-export function MfaStep() {
+export function MfaStep({ onVerified }: { onVerified?: () => void } = {}) {
   const [mode, setMode] = useState<Mode>({ kind: "loading" });
   const [code, setCode] = useState("");
   const [trustDevice, setTrustDevice] = useState(false);
@@ -83,6 +83,8 @@ export function MfaStep() {
     }
     // Best-effort: failing here only means the 30-minute sign-out still applies.
     await setDeviceTrust(trustDevice).catch(() => {});
+    // Password reset continues on the same screen instead of entering the app.
+    if (onVerified) return onVerified();
     // Full load so the proxy sees the upgraded (aal2) session cookie.
     // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- intentional hard reload
     window.location.assign("/");
