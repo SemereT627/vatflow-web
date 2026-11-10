@@ -39,7 +39,7 @@ importers:
         specifier: ^5.103.1
         version: 5.103.1(react@19.2.8)
       '@vercel/blob':
-        specifier: 2.8.2
+        specifier: ^2.8.2
         version: 2.8.2
       class-variance-authority:
         specifier: ^0.7.1
