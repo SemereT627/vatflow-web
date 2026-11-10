@@ -7,8 +7,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
  * losing the Supabase project doesn't take the backups with it. Each run writes
  * backups/vatflow-<timestamp>.json.gz with every table, keeps 30 days.
  *
- * It holds every shop's data, so it is only reachable from the Vercel dashboard
- * (Storage → Blob), never from the app. Not covered: Supabase Auth accounts
+ * It holds every shop's data, so only VatFlow's owners (OWNER_EMAILS) see it in
+ * the app (/admin/backups) — never a shop's admins. Not covered: Supabase Auth accounts
  * (auth.users) — people would be re-invited after a full project loss; their
  * profiles and roles are in the dump.
  */
@@ -37,8 +37,14 @@ async function readTable(table: string) {
   }
 }
 
+export type BackupSummary = { pathname: string; size: number; uploadedAt: string };
+
+export function isBackupPath(pathname: string) {
+  return /^backups\/vatflow-[\w-]+\.json\.gz$/.test(pathname);
+}
+
 async function listBackupBlobs() {
-  const blobs: { pathname: string; uploadedAt: Date }[] = [];
+  const blobs: { pathname: string; size: number; uploadedAt: Date }[] = [];
   let cursor: string | undefined;
   do {
     const page = await list({ prefix: "backups/", cursor });
@@ -61,10 +67,10 @@ export async function runBackup() {
 
   // Read it back and compare row counts, so a file that can't be opened fails
   // tonight's run instead of being discovered at restore time.
-  const stored = await get(pathname, { access: "private", useCache: false });
-  if (stored?.statusCode !== 200) throw new Error(`Backup ${pathname} could not be read back`);
+  const stored = await openBackup(pathname);
+  if (!stored) throw new Error(`Backup ${pathname} could not be read back`);
   const check = JSON.parse(
-    gunzipSync(Buffer.from(await new Response(stored.stream).arrayBuffer())).toString("utf8"),
+    gunzipSync(Buffer.from(await new Response(stored).arrayBuffer())).toString("utf8"),
   ) as BackupFile;
   for (const table of BACKUP_TABLES) {
     if (check.tables[table]?.length !== tables[table].length) {
@@ -82,4 +88,18 @@ export async function runBackup() {
     rows: Object.fromEntries(Object.entries(tables).map(([t, r]) => [t, r.length])),
     pruned: expired.length,
   };
+}
+
+/** Newest first. */
+export async function listBackups(): Promise<BackupSummary[]> {
+  return (await listBackupBlobs())
+    .filter((b) => isBackupPath(b.pathname))
+    .map((b) => ({ pathname: b.pathname, size: b.size, uploadedAt: b.uploadedAt.toISOString() }))
+    .sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt));
+}
+
+/** Raw gzipped backup stream, or null if it isn't there. */
+export async function openBackup(pathname: string) {
+  const result = await get(pathname, { access: "private", useCache: false });
+  return result?.statusCode === 200 ? result.stream : null;
 }

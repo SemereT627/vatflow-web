@@ -5,6 +5,7 @@ import { UserMenu } from "@/components/user-menu";
 import { KilnLink } from "@/components/kiln-link";
 import { NavLinks, type NavGroup } from "@/components/nav-links";
 import { MobileNav } from "@/components/mobile-nav";
+import { isOwner } from "@/lib/owner";
 
 const ICONS: Record<string, React.ReactNode> = {
   Dashboard: (
@@ -39,6 +40,13 @@ const ICONS: Record<string, React.ReactNode> = {
       <path d="M2.5 20c1-3.5 3.6-5.4 6.5-5.4s5.5 1.9 6.5 5.4" />
       <circle cx="17.5" cy="9" r="2.4" />
       <path d="M16 14.6c2 .2 3.7 1.7 4.5 4.4" />
+    </svg>
+  ),
+  Backups: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <ellipse cx="12" cy="5" rx="8" ry="3" />
+      <path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5" />
+      <path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6" />
     </svg>
   ),
   Settings: (
@@ -77,6 +85,7 @@ export async function Sidebar() {
               { href: "/admin/sellers", label: "Sellers" },
               { href: "/admin/reports", label: "Reports" },
               { href: "/admin/settings", label: "Settings" },
+              ...(isOwner(session.email) ? [{ href: "/admin/backups", label: "Backups" }] : []),
             ],
           },
         ]

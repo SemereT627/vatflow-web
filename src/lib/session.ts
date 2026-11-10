@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Profile, Shop } from "@/lib/types";
 
-export async function getCurrentProfile(): Promise<{ profile: Profile; shop: Shop } | null> {
+export async function getCurrentProfile(): Promise<{ profile: Profile; shop: Shop; email: string | null } | null> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -28,5 +28,5 @@ export async function getCurrentProfile(): Promise<{ profile: Profile; shop: Sho
     .single();
   if (!shop) return null;
 
-  return { profile: profile as Profile, shop: shop as Shop };
+  return { profile: profile as Profile, shop: shop as Shop, email: user.email ?? null };
 }

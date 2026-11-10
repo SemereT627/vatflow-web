@@ -32,8 +32,8 @@ sellers record sales offline in the field and sync them here.
 - **Backups** — Vercel Cron (`vercel.json`, daily 00:00 UTC = 03:00 Addis) calls
   `/api/cron/backup` (`src/lib/backup.ts`): every table as one gzipped JSON in a private
   Vercel Blob store (`backups/`, kept 30 days), read back and row-count checked. It holds
-  every shop's data, so it's only in the Vercel dashboard (Storage → Blob), not the app.
-  Auth accounts aren't included. Add new tables to `BACKUP_TABLES`, parents first.
+  every shop's data, so only `OWNER_EMAILS` see `/admin/backups` (list, "Back up now",
+  download, stale warning after 36 h) — never a shop's admins. Auth accounts aren't included. Add new tables to `BACKUP_TABLES`, parents first.
 
 ## Tech stack
 
@@ -61,6 +61,7 @@ Next.js 16 (App Router, Turbopack) · React 19 · Supabase (Postgres + Auth) · 
    | `SUPABASE_SERVICE_ROLE_KEY` | Service-role key — server-only, needed to create seller accounts. Never expose to the client. |
    | `BLOB_READ_WRITE_TOKEN` | Private Vercel Blob store for nightly backups — set by connecting the store to the project in Vercel. Production only. |
    | `CRON_SECRET` | Random secret Vercel Cron sends as a Bearer token to `/api/cron/backup`. Production only. |
+   | `OWNER_EMAILS` | Comma-separated emails of VatFlow's owners — only they get the Backups page (backups hold every shop's data). |
 
 3. Apply the schema in `supabase/schema.sql` to your Supabase project (SQL editor or CLI).
 
