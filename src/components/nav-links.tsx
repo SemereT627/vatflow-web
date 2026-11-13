@@ -28,13 +28,17 @@ export function NavLinks({ groups }: { groups: NavGroup[] }) {
                   key={link.href}
                   href={link.href}
                   title={link.label}
-                  className={`relative flex flex-none items-center gap-2.5 rounded-r-lg border-l-2 py-2 pl-2 pr-2.5 text-sm transition-colors group-data-[collapsed=true]/sidebar:justify-center group-data-[collapsed=true]/sidebar:px-0 ${
+                  className={`relative flex h-9 flex-none items-center gap-2.5 rounded-lg px-2.5 text-sm transition-colors group-data-[collapsed=true]/sidebar:justify-center group-data-[collapsed=true]/sidebar:px-0 ${
                     active
-                      ? "border-brand bg-[color-mix(in_srgb,var(--color-brand)_14%,transparent)] font-semibold text-brand"
-                      : "border-transparent font-medium text-ink-soft hover:bg-surface-2 hover:text-foreground"
+                      ? "bg-brand/[0.07] font-semibold text-brand hover:bg-brand/10"
+                      : "font-medium text-ink-soft hover:bg-surface-2 hover:text-foreground"
                   }`}
                 >
-                  <span className="h-[17px] w-[17px] flex-none [&>svg]:h-full [&>svg]:w-full">{link.icon}</span>
+                  {/* Kiln's active marker: a short bar just outside the item. */}
+                  {active && (
+                    <span className="absolute -left-2 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-r-full bg-brand/80 group-data-[collapsed=true]/sidebar:hidden" />
+                  )}
+                  <span className="size-4 flex-none [&>svg]:size-4">{link.icon}</span>
                   <span className="group-data-[collapsed=true]/sidebar:hidden">{link.label}</span>
                   {!!link.badge && (
                     // Collapsed: shrinks to a dot on the icon.

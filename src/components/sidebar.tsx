@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { DatabaseBackup, FileSpreadsheet, LayoutDashboard, Package, Settings, ShoppingCart, Users } from "lucide-react";
 import { cookies } from "next/headers";
 import { getCurrentProfile } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
@@ -10,54 +11,15 @@ import { isOwner } from "@/lib/owner";
 import { SidebarToggle } from "@/components/sidebar-toggle";
 import { SIDEBAR_COOKIE } from "@/lib/sidebar";
 
+// Same lucide set as Kiln's sidebar (components/nav-config.ts there).
 const ICONS: Record<string, React.ReactNode> = {
-  Dashboard: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="3" y="12" width="4" height="9" />
-      <rect x="10" y="7" width="4" height="14" />
-      <rect x="17" y="3" width="4" height="18" />
-    </svg>
-  ),
-  Products: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M21 8l-9-5-9 5 9 5 9-5z" />
-      <path d="M3 8v8l9 5 9-5V8" />
-    </svg>
-  ),
-  Sales: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M4 4h16l-1.5 9h-13z" />
-      <circle cx="9" cy="20" r="1.5" />
-      <circle cx="18" cy="20" r="1.5" />
-    </svg>
-  ),
-  Reports: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M12 3v12m0 0l-4-4m4 4l4-4" />
-      <path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" />
-    </svg>
-  ),
-  Sellers: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="9" cy="8" r="3.2" />
-      <path d="M2.5 20c1-3.5 3.6-5.4 6.5-5.4s5.5 1.9 6.5 5.4" />
-      <circle cx="17.5" cy="9" r="2.4" />
-      <path d="M16 14.6c2 .2 3.7 1.7 4.5 4.4" />
-    </svg>
-  ),
-  Backups: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <ellipse cx="12" cy="5" rx="8" ry="3" />
-      <path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5" />
-      <path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6" />
-    </svg>
-  ),
-  Settings: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1.08-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1.08 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z" />
-    </svg>
-  ),
+  Dashboard: <LayoutDashboard />,
+  Products: <Package />,
+  Sales: <ShoppingCart />,
+  Reports: <FileSpreadsheet />,
+  Sellers: <Users />,
+  Settings: <Settings />,
+  Backups: <DatabaseBackup />,
 };
 
 export async function Sidebar() {
@@ -108,7 +70,7 @@ export async function Sidebar() {
 
       <aside
         data-collapsed={collapsed}
-        className="group/sidebar hidden flex-none flex-col gap-6 overflow-y-auto overflow-x-hidden border-line bg-surface px-4 py-6 transition-[width] md:sticky md:top-0 md:flex md:h-screen md:w-64 md:border-r data-[collapsed=true]:px-3 md:data-[collapsed=true]:w-[4.5rem]"
+        className="group/sidebar hidden flex-none flex-col gap-6 overflow-y-auto overflow-x-hidden border-line bg-background px-4 py-6 transition-[width] md:sticky md:top-0 md:flex md:h-screen md:w-64 md:border-r data-[collapsed=true]:px-3 md:data-[collapsed=true]:w-[4.5rem]"
       >
         <div className="flex items-center gap-2.5 px-1 group-data-[collapsed=true]/sidebar:flex-col-reverse group-data-[collapsed=true]/sidebar:gap-3 group-data-[collapsed=true]/sidebar:px-0">
           <div className="relative h-8 w-8 flex-none group-data-[collapsed=true]/sidebar:h-6 group-data-[collapsed=true]/sidebar:w-6">
