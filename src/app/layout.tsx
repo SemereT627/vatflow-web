@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { Inter, Geist_Mono, Noto_Sans_Ethiopic } from "next/font/google";
+import { Lexend, Geist_Mono, Noto_Sans_Ethiopic } from "next/font/google";
 import "./globals.css";
 import { QueryProvider } from "@/components/query-provider";
 
-// Same type system as Kiln. Generic variable names (--font-body / --font-code)
-// so swapping a family only touches this file, never globals.css.
-const inter = Inter({
+// Generic variable names (--font-body / --font-code) so swapping a family
+// only touches this file, never globals.css. Body is Lexend (Kiln uses Inter).
+const lexend = Lexend({
   variable: "--font-body",
   subsets: ["latin"],
 });
@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// Inter has no Ethiopic glyphs — give Amharic text a matching fallback.
+// Lexend has no Ethiopic glyphs — give Amharic text a matching fallback.
 const notoEthiopic = Noto_Sans_Ethiopic({
   variable: "--font-ethiopic",
   subsets: ["ethiopic"],
@@ -45,7 +45,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${geistMono.variable} ${notoEthiopic.variable} h-full antialiased`}
+      className={`${lexend.variable} ${geistMono.variable} ${notoEthiopic.variable} h-full antialiased`}
     >
       <body className="h-full font-sans text-foreground">
         <QueryProvider>{children}</QueryProvider>
