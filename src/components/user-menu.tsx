@@ -12,10 +12,13 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 export function UserMenu({
   fullName,
   role,
+  email,
   onNavigate,
 }: {
   fullName: string;
   role: "admin" | "seller" | string;
+  /** Shown under the name like Kiln; falls back to the role. */
+  email?: string | null;
   /** Called before navigating — the mobile menu uses it to close itself. */
   onNavigate?: () => void;
 }) {
@@ -43,17 +46,17 @@ export function UserMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        className="flex w-full items-center gap-2.5 rounded-xl border border-line bg-background p-3 text-left group-data-[collapsed=true]/sidebar:justify-center group-data-[collapsed=true]/sidebar:p-1.5 outline-none transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-brand data-[state=open]:bg-surface-2"
+        className="flex min-h-11 w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left group-data-[collapsed=true]/sidebar:mx-auto group-data-[collapsed=true]/sidebar:size-10 group-data-[collapsed=true]/sidebar:min-h-0 group-data-[collapsed=true]/sidebar:justify-center group-data-[collapsed=true]/sidebar:rounded-full group-data-[collapsed=true]/sidebar:p-0 outline-none transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-brand data-[state=open]:bg-surface-2"
         aria-label={`Account menu for ${fullName}`}
       >
-        <div className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-surface-2 font-heading text-xs font-bold">
+        <div className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-brand/10 text-xs font-bold text-brand ring-1 ring-brand/15">
           {initials}
         </div>
         <div className="min-w-0 flex-1 group-data-[collapsed=true]/sidebar:hidden">
-          <div className="truncate text-xs font-bold">{fullName}</div>
-          <div className="text-[11px] capitalize text-ink-soft">{role}</div>
+          <div className="truncate text-sm font-semibold">{fullName}</div>
+          <div className={`mt-0.5 truncate text-[11px] text-ink-soft ${email ? "" : "capitalize"}`}>{email ?? role}</div>
         </div>
-        <ChevronsUpDown className="h-4 w-4 flex-none text-ink-soft group-data-[collapsed=true]/sidebar:hidden" />
+        <ChevronsUpDown className="ml-auto h-4 w-4 flex-none text-ink-soft group-data-[collapsed=true]/sidebar:hidden" />
       </DropdownMenuTrigger>
       <DropdownMenuContent
         side="top"

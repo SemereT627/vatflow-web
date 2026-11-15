@@ -6,7 +6,8 @@ import type { ReactNode } from "react";
 
 /** badge: count shown at the end of the link, e.g. receipts awaiting review. */
 export type NavLink = { href: string; label: string; icon: ReactNode; badge?: number };
-export type NavGroup = { label: string | null; items: NavLink[] };
+/** divider: a line above the group, which Kiln uses only for Administration. */
+export type NavGroup = { label: string | null; divider?: boolean; items: NavLink[] };
 
 export function NavLinks({ groups }: { groups: NavGroup[] }) {
   const pathname = usePathname();
@@ -14,13 +15,16 @@ export function NavLinks({ groups }: { groups: NavGroup[] }) {
   return (
     <nav className="flex flex-col items-stretch">
       {groups.map((group, i) => (
-        <div key={group.label ?? `top-${i}`} className={i > 0 ? "mt-4 border-t border-line pt-4" : ""}>
+        <div
+          key={group.label ?? `top-${i}`}
+          className={group.divider ? "mt-1.5 border-t border-line pt-3 pb-1.5" : "py-1.5"}
+        >
           {group.label && (
-            <div className="mb-1 px-2.5 text-xs font-medium text-ink-faint group-data-[collapsed=true]/sidebar:hidden">
+            <div className="flex h-7 items-center px-2.5 text-xs font-medium text-foreground/70 group-data-[collapsed=true]/sidebar:hidden">
               {group.label}
             </div>
           )}
-          <div className="flex flex-col gap-0.5">
+          <div className="flex flex-col">
             {group.items.map((link) => {
               const active = pathname === link.href || pathname.startsWith(link.href + "/");
               return (
@@ -28,7 +32,7 @@ export function NavLinks({ groups }: { groups: NavGroup[] }) {
                   key={link.href}
                   href={link.href}
                   title={link.label}
-                  className={`relative flex h-9 flex-none items-center gap-2.5 rounded-lg px-2.5 text-sm transition-colors group-data-[collapsed=true]/sidebar:justify-center group-data-[collapsed=true]/sidebar:px-0 ${
+                  className={`relative flex h-9 flex-none items-center gap-2.5 rounded-lg px-2.5 text-sm transition-colors group-data-[collapsed=true]/sidebar:mx-auto group-data-[collapsed=true]/sidebar:size-10 group-data-[collapsed=true]/sidebar:justify-center group-data-[collapsed=true]/sidebar:rounded-full group-data-[collapsed=true]/sidebar:px-0 ${
                     active
                       ? "bg-brand/[0.07] font-semibold text-brand hover:bg-brand/10"
                       : "font-medium text-ink-soft hover:bg-surface-2 hover:text-foreground"

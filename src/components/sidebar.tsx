@@ -38,7 +38,7 @@ export async function Sidebar() {
     pendingReview = count ?? 0;
   }
 
-  const groupDefs: { label: string | null; items: { href: string; label: string; badge?: number }[] }[] =
+  const groupDefs: { label: string | null; divider?: boolean; items: { href: string; label: string; badge?: number }[] }[] =
     session.profile.role === "admin"
       ? [
           { label: null, items: [{ href: "/admin/dashboard", label: "Dashboard" }] },
@@ -46,6 +46,7 @@ export async function Sidebar() {
           { label: "Sales", items: [{ href: "/sales", label: "Sales", badge: pendingReview }] },
           {
             label: "Administration",
+            divider: true,
             items: [
               { href: "/admin/sellers", label: "Sellers" },
               { href: "/admin/reports", label: "Reports" },
@@ -59,6 +60,7 @@ export async function Sidebar() {
 
   const groups: NavGroup[] = groupDefs.map((g) => ({
     label: g.label,
+    divider: g.divider,
     items: g.items.map((l) => ({ ...l, icon: ICONS[l.label] })),
   }));
 
@@ -70,24 +72,29 @@ export async function Sidebar() {
 
       <aside
         data-collapsed={collapsed}
-        className="group/sidebar hidden flex-none flex-col gap-6 overflow-y-auto overflow-x-hidden border-line bg-background px-4 py-6 transition-[width] md:sticky md:top-0 md:flex md:h-screen md:w-64 md:border-r data-[collapsed=true]:px-3 md:data-[collapsed=true]:w-[4.5rem]"
+        className="group/sidebar hidden flex-none flex-col overflow-x-hidden border-line bg-background transition-[width] md:sticky md:top-0 md:flex md:h-screen md:w-64 md:border-r md:data-[collapsed=true]:w-12"
       >
-        <div className="flex items-center gap-2.5 px-1 group-data-[collapsed=true]/sidebar:flex-col-reverse group-data-[collapsed=true]/sidebar:gap-3 group-data-[collapsed=true]/sidebar:px-0">
-          <div className="relative h-8 w-8 flex-none group-data-[collapsed=true]/sidebar:h-6 group-data-[collapsed=true]/sidebar:w-6">
-            <Image src="/brand/mark.png" alt="VatFlow" fill sizes="32px" className="object-contain" />
-          </div>
-          <div className="min-w-0 flex-1 group-data-[collapsed=true]/sidebar:hidden">
-            <div className="font-heading text-base font-bold leading-none">VatFlow</div>
-            <div className="text-[11px] text-ink-soft">Ledger &amp; VAT desk</div>
+        <div className="flex items-center justify-between px-4 pt-4 pb-2 group-data-[collapsed=true]/sidebar:flex-col-reverse group-data-[collapsed=true]/sidebar:gap-6 group-data-[collapsed=true]/sidebar:px-0 group-data-[collapsed=true]/sidebar:pt-6">
+          <div className="flex items-center gap-2.5">
+            <div className="relative size-7 flex-none">
+              <Image src="/brand/mark.png" alt="VatFlow" fill sizes="28px" className="object-contain" />
+            </div>
+            <p className="text-xl leading-tight font-bold tracking-tight group-data-[collapsed=true]/sidebar:hidden">VatFlow</p>
           </div>
           <SidebarToggle />
         </div>
 
-        <NavLinks groups={groups} />
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 group-data-[collapsed=true]/sidebar:px-0">
+          <NavLinks groups={groups} />
+          {session.profile.role === "admin" && (
+            <div className="mt-auto py-1.5">
+              <KilnLink />
+            </div>
+          )}
+        </div>
 
-        <div className="mt-auto space-y-2">
-          {session.profile.role === "admin" && <KilnLink />}
-          <UserMenu fullName={session.profile.full_name} role={session.profile.role} />
+        <div className="mx-4 border-t border-line py-3 group-data-[collapsed=true]/sidebar:mx-1 group-data-[collapsed=true]/sidebar:py-2">
+          <UserMenu fullName={session.profile.full_name} role={session.profile.role} email={session.email} />
         </div>
       </aside>
     </>

@@ -1,6 +1,6 @@
 "use client";
 
-import { PanelLeft } from "lucide-react";
+import { Menu } from "lucide-react";
 import { SIDEBAR_COOKIE } from "@/lib/sidebar";
 
 /**
@@ -25,7 +25,7 @@ export function SidebarToggle() {
       title="Collapse or expand the sidebar"
       className="flex h-8 w-8 flex-none items-center justify-center rounded-lg text-ink-soft transition-colors hover:bg-surface-2 hover:text-foreground focus-visible:outline-2 focus-visible:outline-brand"
     >
-      <PanelLeft className="h-4 w-4" />
+      <Menu className="h-4 w-4" />
     </button>
   );
 }
