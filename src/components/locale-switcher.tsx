@@ -26,9 +26,15 @@ export function LocaleSwitcher() {
   return (
     <div className="relative">
       <Select value={locale} onValueChange={handleChange}>
-        <SelectTrigger className="h-8 w-auto gap-1.5 px-2.5 text-xs font-semibold">
-          <Globe className="h-3.5 w-3.5 text-ink-soft" />
-          <SelectValue />
+        <SelectTrigger
+          aria-label="Language"
+          title="Language"
+          className="size-10 justify-center rounded-xl bg-surface p-0 text-ink-soft hover:bg-surface-2 hover:text-foreground [&>svg:last-child]:hidden"
+        >
+          <Globe className="size-4" />
+          <span className="sr-only">
+            <SelectValue />
+          </span>
         </SelectTrigger>
         <SelectContent align="end">
           {LOCALES.map((l) => (

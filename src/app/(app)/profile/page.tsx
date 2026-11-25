@@ -14,7 +14,7 @@ export default async function ProfilePage() {
   if (!user) redirect("/login");
 
   return (
-    <div className="p-4">
+    <div className="px-4 pt-2 pb-6 md:px-8">
       {/* Centred column, matching Kiln's profile page */}
       <div className="mx-auto max-w-4xl">
         <div className="mb-6">

@@ -3,59 +3,40 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { RailTooltip, railTileClass } from "@/components/rail-tile";
 
-/** badge: count shown at the end of the link, e.g. receipts awaiting review. */
+/** badge: count shown on the link, e.g. receipts awaiting review. */
 export type NavLink = { href: string; label: string; icon: ReactNode; badge?: number };
-/** divider: a line above the group, which Kiln uses only for Administration. */
+/** Mobile menu sections; the desktop rail ignores labels and dividers. */
 export type NavGroup = { label: string | null; divider?: boolean; items: NavLink[] };
 
-export function NavLinks({ groups }: { groups: NavGroup[] }) {
+export function RailLinks({ items }: { items: NavLink[] }) {
   const pathname = usePathname();
 
   return (
-    <nav className="flex flex-col items-stretch">
-      {groups.map((group, i) => (
-        <div
-          key={group.label ?? `top-${i}`}
-          className={group.divider ? "mt-1.5 border-t border-line pt-3 pb-1.5" : "py-1.5"}
-        >
-          {group.label && (
-            <div className="flex h-7 items-center px-2.5 text-xs font-medium text-foreground/70 group-data-[collapsed=true]/sidebar:hidden">
-              {group.label}
-            </div>
-          )}
-          <div className="flex flex-col">
-            {group.items.map((link) => {
-              const active = pathname === link.href || pathname.startsWith(link.href + "/");
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  title={link.label}
-                  className={`relative flex h-9 flex-none items-center gap-2.5 rounded-lg px-2.5 text-sm transition-colors group-data-[collapsed=true]/sidebar:mx-auto group-data-[collapsed=true]/sidebar:size-10 group-data-[collapsed=true]/sidebar:justify-center group-data-[collapsed=true]/sidebar:rounded-full group-data-[collapsed=true]/sidebar:px-0 ${
-                    active
-                      ? "bg-brand/[0.07] font-semibold text-brand hover:bg-brand/10"
-                      : "font-medium text-ink-soft hover:bg-surface-2 hover:text-foreground"
-                  }`}
-                >
-                  {/* Kiln's active marker: a short bar just outside the item. */}
-                  {active && (
-                    <span className="absolute -left-2 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-r-full bg-brand/80 group-data-[collapsed=true]/sidebar:hidden" />
-                  )}
-                  <span className="size-4 flex-none [&>svg]:size-4">{link.icon}</span>
-                  <span className="group-data-[collapsed=true]/sidebar:hidden">{link.label}</span>
-                  {!!link.badge && (
-                    // Collapsed: shrinks to a dot on the icon.
-                    <span className="ml-auto rounded-full bg-warn-bg px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-warn group-data-[collapsed=true]/sidebar:absolute group-data-[collapsed=true]/sidebar:right-1 group-data-[collapsed=true]/sidebar:top-1 group-data-[collapsed=true]/sidebar:h-2 group-data-[collapsed=true]/sidebar:w-2 group-data-[collapsed=true]/sidebar:bg-warn group-data-[collapsed=true]/sidebar:p-0 group-data-[collapsed=true]/sidebar:text-[0px]">
-                      {link.badge}
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      ))}
-    </nav>
+    <>
+      {items.map((link) => {
+        const active = pathname === link.href || pathname.startsWith(link.href + "/");
+        return (
+          <Link
+            key={link.href}
+            href={link.href}
+            aria-label={link.badge ? `${link.label} (${link.badge} pending review)` : link.label}
+            aria-current={active ? "page" : undefined}
+            className={railTileClass(active)}
+          >
+            {/* Active marker: a short lime bar on the rail's left edge. */}
+            {active && <span className="absolute top-1/2 -left-4 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-brand" />}
+            {link.icon}
+            {!!link.badge && (
+              <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-warn px-1 text-[10px] font-bold text-black tabular-nums">
+                {link.badge}
+              </span>
+            )}
+            <RailTooltip>{link.label}</RailTooltip>
+          </Link>
+        );
+      })}
+    </>
   );
 }
