@@ -8,7 +8,7 @@ export default async function AdminSettingsPage() {
   if (session.profile.role !== "admin") redirect("/sales");
 
   return (
-    <div className="p-4">
+    <div className="px-4 pt-2 pb-6 md:px-8">
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Shop settings</h1>
         <p className="mt-0.5 text-sm text-ink-soft">Business details used on receipts and the VAT journal.</p>

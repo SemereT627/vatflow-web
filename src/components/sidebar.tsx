@@ -1,100 +1,81 @@
 import Image from "next/image";
-import { DatabaseBackup, FileSpreadsheet, LayoutDashboard, Package, Settings, ShoppingCart, Users } from "lucide-react";
-import { cookies } from "next/headers";
+import Link from "next/link";
+import { DatabaseBackup, FileText, LayoutGrid, Package, SlidersHorizontal, TrendingUp, Users } from "lucide-react";
 import { getCurrentProfile } from "@/lib/session";
-import { createClient } from "@/lib/supabase/server";
-import { UserMenu } from "@/components/user-menu";
-import { KilnLink } from "@/components/kiln-link";
-import { NavLinks, type NavGroup } from "@/components/nav-links";
+import { pendingReviewCount } from "@/lib/review";
+import { RailLinks, type NavGroup } from "@/components/nav-links";
+import { RailTooltip, railTileClass } from "@/components/rail-tile";
 import { MobileNav } from "@/components/mobile-nav";
 import { isOwner } from "@/lib/owner";
-import { SidebarToggle } from "@/components/sidebar-toggle";
-import { SIDEBAR_COOKIE } from "@/lib/sidebar";
 
-// Same lucide set as Kiln's sidebar (components/nav-config.ts there).
-const ICONS: Record<string, React.ReactNode> = {
-  Dashboard: <LayoutDashboard />,
-  Products: <Package />,
-  Sales: <ShoppingCart />,
-  Reports: <FileSpreadsheet />,
-  Sellers: <Users />,
-  Settings: <Settings />,
-  Backups: <DatabaseBackup />,
-};
-
+/**
+ * Desktop: the reference's 72px icon rail (logo, page tiles, Kiln and
+ * Settings at the foot). Mobile: the drawer menu.
+ */
 export async function Sidebar() {
   const session = await getCurrentProfile();
   if (!session) return null;
 
-  // Mobile receipts waiting for an admin's review — shown on the Sales link.
-  let pendingReview = 0;
-  if (session.profile.role === "admin") {
-    const supabase = await createClient();
-    const { count } = await supabase
-      .from("sales")
-      .select("id", { count: "exact", head: true })
-      .eq("shop_id", session.shop.id)
-      .eq("review_status", "pending");
-    pendingReview = count ?? 0;
-  }
+  const isAdmin = session.profile.role === "admin";
+  const pending = isAdmin ? await pendingReviewCount(session.shop.id) : 0;
 
-  const groupDefs: { label: string | null; divider?: boolean; items: { href: string; label: string; badge?: number }[] }[] =
-    session.profile.role === "admin"
-      ? [
-          { label: null, items: [{ href: "/admin/dashboard", label: "Dashboard" }] },
-          { label: "Catalog", items: [{ href: "/admin/products", label: "Products" }] },
-          { label: "Sales", items: [{ href: "/sales", label: "Sales", badge: pendingReview }] },
-          {
-            label: "Administration",
-            divider: true,
-            items: [
-              { href: "/admin/sellers", label: "Sellers" },
-              { href: "/admin/reports", label: "Reports" },
-              { href: "/admin/settings", label: "Settings" },
-              ...(isOwner(session.email) ? [{ href: "/admin/backups", label: "Backups" }] : []),
-            ],
-          },
-        ]
-      : [{ label: null, items: [{ href: "/sales", label: "Sales" }] }];
+  const groups: NavGroup[] = isAdmin
+    ? [
+        { label: null, items: [{ href: "/admin/dashboard", label: "Dashboard", icon: <LayoutGrid /> }] },
+        { label: "Sales", items: [{ href: "/sales", label: "Sales", icon: <TrendingUp />, badge: pending }] },
+        { label: "Catalog", items: [{ href: "/admin/products", label: "Products", icon: <Package /> }] },
+        {
+          label: "Administration",
+          divider: true,
+          items: [
+            { href: "/admin/sellers", label: "Sellers", icon: <Users /> },
+            { href: "/admin/reports", label: "Reports", icon: <FileText /> },
+            ...(isOwner(session.email) ? [{ href: "/admin/backups", label: "Backups", icon: <DatabaseBackup /> }] : []),
+            { href: "/admin/settings", label: "Settings", icon: <SlidersHorizontal /> },
+          ],
+        },
+      ]
+    : [{ label: null, items: [{ href: "/sales", label: "Sales", icon: <TrendingUp /> }] }];
 
-
-  const groups: NavGroup[] = groupDefs.map((g) => ({
-    label: g.label,
-    divider: g.divider,
-    items: g.items.map((l) => ({ ...l, icon: ICONS[l.label] })),
-  }));
-
-  const collapsed = (await cookies()).get(SIDEBAR_COOKIE)?.value === "1";
+  const items = groups.flatMap((g) => g.items);
+  const settings = items.find((l) => l.href === "/admin/settings");
+  const main = items.filter((l) => l !== settings);
 
   return (
     <>
       <MobileNav groups={groups} fullName={session.profile.full_name} role={session.profile.role} />
 
-      <aside
-        data-collapsed={collapsed}
-        className="group/sidebar hidden flex-none flex-col overflow-x-hidden border-line bg-background transition-[width] md:sticky md:top-0 md:flex md:h-screen md:w-64 md:border-r md:data-[collapsed=true]:w-12"
-      >
-        <div className="flex items-center justify-between px-4 pt-4 pb-2 group-data-[collapsed=true]/sidebar:flex-col-reverse group-data-[collapsed=true]/sidebar:gap-6 group-data-[collapsed=true]/sidebar:px-0 group-data-[collapsed=true]/sidebar:pt-6">
-          <div className="flex items-center gap-2.5">
-            <div className="relative size-7 flex-none">
-              <Image src="/brand/mark.png" alt="VatFlow" fill sizes="28px" className="object-contain" />
-            </div>
-            <p className="text-xl leading-tight font-bold tracking-tight group-data-[collapsed=true]/sidebar:hidden">VatFlow</p>
-          </div>
-          <SidebarToggle />
-        </div>
+      <aside className="hidden w-[72px] flex-none flex-col items-center gap-4 border-r border-line bg-background py-5 md:sticky md:top-0 md:flex md:h-screen">
+        <Link
+          href={isAdmin ? "/admin/dashboard" : "/sales"}
+          aria-label="VatFlow home"
+          className="mb-4 flex size-10 flex-none items-center justify-center rounded-xl border border-line bg-surface-2"
+        >
+          <span className="relative size-6">
+            <Image src="/brand/mark.png" alt="" fill sizes="24px" className="object-contain" />
+          </span>
+        </Link>
 
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 group-data-[collapsed=true]/sidebar:px-0">
-          <NavLinks groups={groups} />
-          {session.profile.role === "admin" && (
-            <div className="mt-auto py-1.5">
-              <KilnLink />
-            </div>
+        <nav aria-label="Main" className="flex flex-col items-center gap-4">
+          <RailLinks items={main} />
+        </nav>
+
+        <div className="mt-auto flex flex-col items-center gap-4">
+          {isAdmin && (
+            <a
+              href="https://kiln.semere.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Kiln (opens in a new tab)"
+              className={railTileClass(false)}
+            >
+              <span className="relative size-[18px]">
+                <Image src="/brand/kiln-mark.png" alt="" fill sizes="18px" className="object-contain" />
+              </span>
+              <RailTooltip>Kiln</RailTooltip>
+            </a>
           )}
-        </div>
-
-        <div className="mx-4 border-t border-line py-3 group-data-[collapsed=true]/sidebar:mx-1 group-data-[collapsed=true]/sidebar:py-2">
-          <UserMenu fullName={session.profile.full_name} role={session.profile.role} email={session.email} />
+          {settings && <RailLinks items={[settings]} />}
         </div>
       </aside>
     </>

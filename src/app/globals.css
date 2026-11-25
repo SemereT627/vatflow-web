@@ -2,28 +2,37 @@
 @plugin "tailwindcss-animate";
 
 :root {
-  /* Neutral near-black like Kiln; green is the only accent. */
-  --background: #0a0a0a;
-  --foreground: #fafafa;
-  --surface: #171717;
-  --surface-2: #262626;
-  --line: rgb(255 255 255 / 0.1);
-  --ink-soft: #a1a1a1;
-  --ink-faint: #737373;
-  --brand: #55baa5;
-  --brand-ink: #08130f;
-  --accent: #55baa5;
-  --accent-ink: #08130f;
-  --s1: #55baa5;
-  --s2: #a7e3d4;
-  --s3: #3987e5;
-  --s4: #d9663f;
-  --good: #3fbe55;
-  --good-bg: #173622;
+  /* "Pulse" dark: near-black page, #141414 cards, lime as the only accent. */
+  --background: #0d0d0f;
+  --foreground: #f4f4f2;
+  --surface: #141414;
+  --surface-2: #1b1b1a;
+  --line: rgb(255 255 255 / 0.07);
+  --ink-soft: #9d9d9a;
+  --ink-faint: #6a6a67;
+  --brand: #9cea36;
+  --brand-ink: #0e1802;
+  --accent: #9cea36;
+  --accent-ink: #0e1802;
+  /* Ranked series (top products): lime, olive, then greys. */
+  --s1: #9cea36;
+  --s2: #8a9a2c;
+  --s3: #5c5d58;
+  --s4: #474844;
+  --s5: #3a3b37;
+  --s6: #2e2f2c;
+  /* Heatmap steps, empty to high. */
+  --heat-0: #1d1d1d;
+  --heat-1: #2a2e14;
+  --heat-2: #48501e;
+  --heat-3: #6f8f2e;
+  --heat-4: #9cea36;
+  --good: #9cea36;
+  --good-bg: #262d14;
   --warn: #d9a441;
   --warn-bg: #3a2e12;
   --critical: #e5584a;
-  --critical-bg: #3a1712;
+  --critical-bg: #321b15;
   color-scheme: dark;
 }
 
@@ -43,6 +52,8 @@
   --color-s2: var(--s2);
   --color-s3: var(--s3);
   --color-s4: var(--s4);
+  --color-s5: var(--s5);
+  --color-s6: var(--s6);
   --color-good: var(--good);
   --color-good-bg: var(--good-bg);
   --color-warn: var(--warn);
@@ -67,4 +78,9 @@ h1, h2, h3 {
 .num {
   font-family: var(--font-data);
   font-variant-numeric: tabular-nums;
+}
+
+/* Diagonal hatch in the current text colour (inactive bars), as in Kiln. */
+.bg-hatch {
+  background-image: repeating-linear-gradient(135deg, currentColor 0 1.5px, transparent 1.5px 7px);
 }

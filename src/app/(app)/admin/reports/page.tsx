@@ -25,7 +25,7 @@ export default async function AdminReportsPage() {
   const columns = (template?.columns as TemplateColumn[]) ?? [];
 
   return (
-    <div className="p-4">
+    <div className="px-4 pt-2 pb-6 md:px-8">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Monthly journal</h1>
